@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Utils;
 
@@ -7,12 +8,17 @@ namespace WalkingATM.Publisher.BackgroundJobs;
 
 public class PushLogDataJob : BackgroundService
 {
+    private readonly IOptions<AppSettings> _appSettings;
     private readonly ILogger<PushLogDataJob> _logger;
     private readonly ILogFileMonitor _monitor;
 
-    public PushLogDataJob(ILogFileMonitor logFileMonitor, ILogger<PushLogDataJob> logger)
+    public PushLogDataJob(
+        ILogFileMonitor logFileMonitor,
+        IOptions<AppSettings> appSettings,
+        ILogger<PushLogDataJob> logger)
     {
         _monitor = logFileMonitor;
+        _appSettings = appSettings;
         _logger = logger;
     }
 
@@ -27,23 +33,21 @@ public class PushLogDataJob : BackgroundService
 
     private async Task Executing()
     {
-        using var timer = new CronTimer("2/2 * * * *");
+        using var timer = new CronTimer(_appSettings.Value.PushLogDataJobCron);
         while (await timer.WaitForNextTickAsync())
         {
-            _monitor.OnLine += (s, e) =>
+            _monitor.OnLine += (_, e) =>
             {
                 foreach (var line in e.Lines)
                 {
+                    // todo push data to line bot server
                     _logger.LogInformation("{Line}", line);
                 }
             };
 
-            // todo: maybe only need date
-            var date = DateTime.Now.ToString("yyyyMMddHHmmss");
+            var date = DateTime.Now.ToString(_appSettings.Value.XQLogFileDateTimeFormat);
 
-            // todo: change to real data path
-            _monitor.Start(
-                $"/Users/shenglin-alex/Workspace/WalkingATM.Publisher/WalkingATM.Publisher/test.{date}.txt");
+            _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, date));
         }
     }
 }

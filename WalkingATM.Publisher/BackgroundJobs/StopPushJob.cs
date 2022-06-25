@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Utils;
 
@@ -7,10 +8,12 @@ namespace WalkingATM.Publisher.BackgroundJobs;
 public class StopPushJob : BackgroundService
 {
     private readonly ILogFileMonitor _monitor;
+    private readonly IOptions<AppSettings> _appSettings;
 
-    public StopPushJob(ILogFileMonitor logFileMonitor)
+    public StopPushJob(ILogFileMonitor logFileMonitor, IOptions<AppSettings> appSettings)
     {
         _monitor = logFileMonitor;
+        _appSettings = appSettings;
     }
 
     /// <summary>
@@ -24,7 +27,7 @@ public class StopPushJob : BackgroundService
 
     private async Task Executing()
     {
-        using var timer = new CronTimer("3/2 * * * *");
+        using var timer = new CronTimer(_appSettings.Value.StopPushJobCron);
         while (await timer.WaitForNextTickAsync())
         {
             _monitor.Stop();

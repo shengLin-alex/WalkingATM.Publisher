@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Hosting;
 using NLog.Extensions.Logging;
+using WalkingATM.Publisher;
 using WalkingATM.Publisher.BackgroundJobs;
 using WalkingATM.Publisher.LogFileMonitor;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -13,6 +14,7 @@ var builder = Host.CreateDefaultBuilder(args)
     .ConfigureServices(
         (hostingContext, services) =>
         {
+            services.AddOptions<AppSettings>().Bind(hostingContext.Configuration);
             services.AddSingleton<ILogFileMonitor, LogFileMonitor>();
             services.AddHostedService<PushLogDataJob>();
             services.AddHostedService<StopPushJob>();
