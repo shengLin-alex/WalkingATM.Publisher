@@ -1,0 +1,10 @@
+.DS_Store
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+.idea/
+WalkingATM.Publisher.sln.DotSettings.user
+SportsBook.Sync/Logs
+.sonarqube
