@@ -5,13 +5,27 @@ using Cronos;
 
 namespace WalkingATM.Publisher.Utils;
 
+public interface ICronTimer
+{
+    /// <summary>Wait for the next tick of the timer, or for the timer to be stopped.</summary>
+    /// <param name="cancellationToken">
+    /// A <see cref="CancellationToken"/> to use to cancel the asynchronous wait. If cancellation is requested, it affects only the single wait operation;
+    /// the underlying timer continues firing.
+    /// </param>
+    /// <returns>A task that will be completed due to the timer firing, <see cref="CronTimer.Dispose"/> being called to stop the timer, or cancellation being requested.</returns>
+    /// <remarks>
+    /// <see cref="CronTimer.WaitForNextTickAsync"/> may only be used by one consumer at a time, and may be used concurrently with a single call to <see cref="CronTimer.Dispose"/>.
+    /// </remarks>
+    ValueTask<bool> WaitForNextTickAsync(CancellationToken cancellationToken = default);
+}
+
 /// <summary>Provides a cron timer similar to <see cref="PeriodicTimer"/> that enables waiting asynchronously for timer ticks.</summary>
 /// <remarks>
 /// This timer is intended to be used only by a single consumer at a time: only one call to <see cref="WaitForNextTickAsync" />
 /// may be in flight at any given moment. <see cref="Dispose"/> may be used concurrently with an active <see cref="WaitForNextTickAsync" />
 /// to interrupt it and cause it to return false.
 /// </remarks>
-public sealed class CronTimer : IDisposable
+public class CronTimer : ICronTimer, IDisposable
 {
     private readonly CronExpression _expression;
     private readonly State _state;
@@ -52,27 +66,6 @@ public sealed class CronTimer : IDisposable
         _timer = new Timer(s => ((State)s!).Signal(), _state, Timeout.Infinite, Timeout.Infinite);
     }
 
-    /// <summary>Stops the timer and releases associated managed resources.</summary>
-    /// <remarks>
-    /// <see cref="Dispose"/> will cause an active wait with <see cref="WaitForNextTickAsync"/> to complete with a value of false.
-    /// All subsequent <see cref="WaitForNextTickAsync"/> invocations will produce a value of false.
-    /// </remarks>
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
-
-        lock (_timer)
-        {
-            if (!_canceled)
-            {
-                _canceled = true;
-                _timer.Dispose();
-            }
-        }
-
-        _state.Signal(true);
-    }
-
     /// <summary>Wait for the next tick of the timer, or for the timer to be stopped.</summary>
     /// <param name="cancellationToken">
     /// A <see cref="CancellationToken"/> to use to cancel the asynchronous wait. If cancellation is requested, it affects only the single wait operation;
@@ -105,6 +98,27 @@ public sealed class CronTimer : IDisposable
         }
 
         return _state.WaitForNextTickAsync(this, cancellationToken);
+    }
+
+    /// <summary>Stops the timer and releases associated managed resources.</summary>
+    /// <remarks>
+    /// <see cref="Dispose"/> will cause an active wait with <see cref="WaitForNextTickAsync"/> to complete with a value of false.
+    /// All subsequent <see cref="WaitForNextTickAsync"/> invocations will produce a value of false.
+    /// </remarks>
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+
+        lock (_timer)
+        {
+            if (!_canceled)
+            {
+                _canceled = true;
+                _timer.Dispose();
+            }
+        }
+
+        _state.Signal(true);
     }
 
     ~CronTimer()

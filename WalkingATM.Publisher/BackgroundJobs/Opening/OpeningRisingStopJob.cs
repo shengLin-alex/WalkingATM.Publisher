@@ -1,4 +1,6 @@
+using Autofac;
 using Autofac.Features.AttributeFilters;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Strategies;
@@ -9,7 +11,9 @@ public class OpeningRisingStopJob : StopPushJobBase
 {
     public OpeningRisingStopJob(
         [KeyFilter(StrategyEnum.OpeningRising)] ILogFileMonitor logFileMonitor,
-        IOptions<AppSettings> appSettings) : base(logFileMonitor, appSettings)
+        ILifetimeScope lifetimeScope,
+        IOptions<AppSettings> appSettings,
+        ILogger<OpeningRisingStopJob> logger) : base(logFileMonitor, lifetimeScope, appSettings, logger)
     {
     }
 }

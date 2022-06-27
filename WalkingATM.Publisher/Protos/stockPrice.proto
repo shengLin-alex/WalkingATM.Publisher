@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcServiceNet60";
+
+package src.grpc.protos;
+
+message StockPrice {
+  string strategy = 1;
+  string date = 2;
+  string time = 3;
+  string symbol = 4;
+  string symbolName = 5;
+  string price = 6;
+}
+
+service StockPriceService {
+  rpc StockPricesHealthCheck (Empty) returns (StockPriceList) {}
+}
+
+message Empty {}
+
+message StockPriceList {
+  repeated StockPrice stockPrices = 1;
+}

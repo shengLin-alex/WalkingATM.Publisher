@@ -1,3 +1,4 @@
+using Autofac;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,24 +11,30 @@ namespace WalkingATM.Publisher.BackgroundJobs;
 public abstract class PushLogDataJobBase : BackgroundService
 {
     private readonly IOptions<AppSettings> _appSettings;
+    private readonly ILifetimeScope _lifetimeScope;
     private readonly ILogger<PushLogDataJobBase> _logger;
     private readonly ILogFileMonitor _monitor;
     private readonly IStrategy _strategy;
+    private readonly ITimeProvider _timeProvider;
 
     protected PushLogDataJobBase(
+        ILifetimeScope lifeTimeScope,
         ILogFileMonitor logFileMonitor,
         IStrategy strategy,
         IOptions<AppSettings> appSettings,
-        ILogger<PushLogDataJobBase> logger)
+        ILogger<PushLogDataJobBase> logger,
+        ITimeProvider timeProvider)
     {
+        _lifetimeScope = lifeTimeScope;
         _monitor = logFileMonitor;
         _strategy = strategy;
         _appSettings = appSettings;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
-    /// should execute at everyday 00:00
+    /// should execute at everyday before market open.
     /// </summary>
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -37,21 +44,33 @@ public abstract class PushLogDataJobBase : BackgroundService
 
     private async Task Executing()
     {
-        using var timer = new CronTimer(_appSettings.Value.PushLogDataJobCron);
-        while (await timer.WaitForNextTickAsync())
+        try
         {
-            _monitor.OnLine += (_, e) =>
+            await using var serviceScope = _lifetimeScope.BeginLifetimeScope();
+            var cronTimerFactory = serviceScope.Resolve<ICronTimerFactory>();
+            var cronTimer = cronTimerFactory.CreateCronTimer(_appSettings.Value.PushLogDataJobCron);
+
+            while (await cronTimer.WaitForNextTickAsync())
             {
-                foreach (var line in e.Lines)
+                if (!_timeProvider.IsWorkingDay()) continue;
+
+                _monitor.OnLine += (_, e) =>
                 {
-                    // todo push data to line bot server
-                    _logger.LogInformation("{Line}", line);
-                }
-            };
+                    foreach (var line in e.Lines)
+                    {
+                        // todo push data to line bot server
+                        _logger.LogInformation("{Line}", line);
+                    }
+                };
 
-            var date = DateTime.Now.ToString(_appSettings.Value.XQLogFileDateTimeFormat);
+                var date = DateTime.Now.ToString(_appSettings.Value.XQLogFileDateTimeFormat);
 
-            _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, _strategy.StrategyName, date));
+                _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, _strategy.StrategyName, date));
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogCritical(e.Message, e);
         }
     }
 }

@@ -1,4 +1,6 @@
+using Autofac;
 using Autofac.Features.AttributeFilters;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Strategies;
@@ -9,7 +11,9 @@ public class IntradayFallStopJob : StopPushJobBase
 {
     public IntradayFallStopJob(
         [KeyFilter(StrategyEnum.IntradayFall)] ILogFileMonitor logFileMonitor,
-        IOptions<AppSettings> appSettings) : base(logFileMonitor, appSettings)
+        ILifetimeScope lifetimeScope,
+        IOptions<AppSettings> appSettings,
+        ILogger<IntradayFallStopJob> logger) : base(logFileMonitor, lifetimeScope, appSettings, logger)
     {
     }
 }

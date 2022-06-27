@@ -79,9 +79,13 @@ public class LogFileMonitor : ILogFileMonitor
         _t.Stop();
         _t.Elapsed -= CheckLog!;
 
-        foreach (var @delegate in OnLine.GetInvocationList())
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+        if (OnLine is not null)
         {
-            OnLine -= (EventHandler<LogFileMonitorLineEventArgs>)@delegate;
+            foreach (var @delegate in OnLine.GetInvocationList())
+            {
+                OnLine -= (EventHandler<LogFileMonitorLineEventArgs>)@delegate;
+            }
         }
 
         lock (_t)
@@ -154,7 +158,8 @@ public class LogFileMonitor : ILogFileMonitor
                     var lines = newData.Split(new[] { Delimiter }, StringSplitOptions.RemoveEmptyEntries);
 
                     // send back to caller, NOTE: this is done from a different thread!
-                    OnLine(this, new LogFileMonitorLineEventArgs { Lines = lines });
+                    // ReSharper disable once ConstantConditionalAccessQualifier
+                    OnLine?.Invoke(this, new LogFileMonitorLineEventArgs { Lines = lines });
                 }
 
                 // set the new current position
