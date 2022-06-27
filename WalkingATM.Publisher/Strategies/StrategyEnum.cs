@@ -1,3 +1,5 @@
+namespace WalkingATM.Publisher.Strategies;
+
 public enum StrategyEnum
 {
     OpeningRising,
