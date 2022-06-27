@@ -2,22 +2,26 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.LogFileMonitor;
+using WalkingATM.Publisher.Strategies;
 using WalkingATM.Publisher.Utils;
 
 namespace WalkingATM.Publisher.BackgroundJobs;
 
-public class PushLogDataJob : BackgroundService
+public abstract class PushLogDataJobBase : BackgroundService
 {
     private readonly IOptions<AppSettings> _appSettings;
-    private readonly ILogger<PushLogDataJob> _logger;
+    private readonly ILogger<PushLogDataJobBase> _logger;
     private readonly ILogFileMonitor _monitor;
+    private readonly IStrategy _strategy;
 
-    public PushLogDataJob(
+    protected PushLogDataJobBase(
         ILogFileMonitor logFileMonitor,
+        IStrategy strategy,
         IOptions<AppSettings> appSettings,
-        ILogger<PushLogDataJob> logger)
+        ILogger<PushLogDataJobBase> logger)
     {
         _monitor = logFileMonitor;
+        _strategy = strategy;
         _appSettings = appSettings;
         _logger = logger;
     }
@@ -47,7 +51,7 @@ public class PushLogDataJob : BackgroundService
 
             var date = DateTime.Now.ToString(_appSettings.Value.XQLogFileDateTimeFormat);
 
-            _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, date));
+            _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, _strategy.StrategyName, date));
         }
     }
 }

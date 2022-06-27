@@ -5,12 +5,12 @@ using WalkingATM.Publisher.Utils;
 
 namespace WalkingATM.Publisher.BackgroundJobs;
 
-public class StopPushJob : BackgroundService
+public abstract class StopPushJobBase : BackgroundService
 {
     private readonly ILogFileMonitor _monitor;
     private readonly IOptions<AppSettings> _appSettings;
 
-    public StopPushJob(ILogFileMonitor logFileMonitor, IOptions<AppSettings> appSettings)
+    protected StopPushJobBase(ILogFileMonitor logFileMonitor, IOptions<AppSettings> appSettings)
     {
         _monitor = logFileMonitor;
         _appSettings = appSettings;
