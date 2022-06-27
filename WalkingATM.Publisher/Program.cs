@@ -8,9 +8,6 @@ using NLog;
 using NLog.Extensions.Hosting;
 using NLog.Extensions.Logging;
 using WalkingATM.Publisher;
-using WalkingATM.Publisher.BackgroundJobs.Closing;
-using WalkingATM.Publisher.BackgroundJobs.Intraday;
-using WalkingATM.Publisher.BackgroundJobs.Opening;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Strategies;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -26,92 +23,24 @@ var builder = Host.CreateDefaultBuilder(args)
     .ConfigureContainer<ContainerBuilder>(
         (_, containerBuilder) =>
         {
-            containerBuilder.RegisterType<ClosingFallPushJob>()
+            containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+                .Where(t => t.IsAssignableTo<IHostedService>())
                 .As<IHostedService>()
                 .WithAttributeFiltering()
                 .SingleInstance();
-            containerBuilder.RegisterType<ClosingFallStopJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<ClosingRisingPushJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<ClosingRisingStopJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<IntradayFallPushJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<IntradayFallStopJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<IntradayRisingPushJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<IntradayRisingStopJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<OpeningFallPushJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<OpeningFallStopJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<OpeningRisingPushJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
-            containerBuilder.RegisterType<OpeningRisingStopJob>()
-                .As<IHostedService>()
-                .WithAttributeFiltering()
-                .SingleInstance();
+            
+            foreach (var strategyEnum in Enum.GetValues<StrategyEnum>())
+            {
+                containerBuilder.RegisterType<LogFileMonitor>()
+                    .Keyed<ILogFileMonitor>(strategyEnum)
+                    .SingleInstance();
 
-            containerBuilder.RegisterType<LogFileMonitor>()
-                .Keyed<ILogFileMonitor>(StrategyEnum.ClosingFall)
-                .SingleInstance();
-            containerBuilder.RegisterType<LogFileMonitor>()
-                .Keyed<ILogFileMonitor>(StrategyEnum.ClosingRising)
-                .SingleInstance();
-            containerBuilder.RegisterType<LogFileMonitor>()
-                .Keyed<ILogFileMonitor>(StrategyEnum.IntradayFall)
-                .SingleInstance();
-            containerBuilder.RegisterType<LogFileMonitor>()
-                .Keyed<ILogFileMonitor>(StrategyEnum.IntradayRising)
-                .SingleInstance();
-            containerBuilder.RegisterType<LogFileMonitor>()
-                .Keyed<ILogFileMonitor>(StrategyEnum.OpeningFall)
-                .SingleInstance();
-            containerBuilder.RegisterType<LogFileMonitor>()
-                .Keyed<ILogFileMonitor>(StrategyEnum.OpeningRising)
-                .SingleInstance();
-
-            containerBuilder.RegisterType<ClosingFallStrategy>()
-                .Keyed<IStrategy>(StrategyEnum.ClosingFall)
-                .SingleInstance();
-            containerBuilder.RegisterType<ClosingRisingStrategy>()
-                .Keyed<IStrategy>(StrategyEnum.ClosingRising)
-                .SingleInstance();
-            containerBuilder.RegisterType<IntradayFallStrategy>()
-                .Keyed<IStrategy>(StrategyEnum.IntradayFall)
-                .SingleInstance();
-            containerBuilder.RegisterType<IntradayRisingStrategy>()
-                .Keyed<IStrategy>(StrategyEnum.IntradayRising)
-                .SingleInstance();
-            containerBuilder.RegisterType<OpeningFallStrategy>()
-                .Keyed<IStrategy>(StrategyEnum.OpeningFall)
-                .SingleInstance();
-            containerBuilder.RegisterType<OpeningRisingStrategy>()
-                .Keyed<IStrategy>(StrategyEnum.OpeningRising)
-                .SingleInstance();
+                containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+                    .Where(t => t.IsAssignableTo<IStrategy>())
+                    .Where(t => t.Name.StartsWith(strategyEnum.ToString()))
+                    .Keyed<IStrategy>(strategyEnum)
+                    .SingleInstance();
+            }
         })
     .ConfigureLogging(
         logging =>
