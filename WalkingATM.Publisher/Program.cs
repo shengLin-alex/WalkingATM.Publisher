@@ -1,9 +1,11 @@
-﻿using Autofac;
+﻿using System.Security.Cryptography.X509Certificates;
+using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Autofac.Features.AttributeFilters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NLog;
 using NLog.Extensions.Hosting;
 using NLog.Extensions.Logging;
@@ -63,6 +65,30 @@ var builder2 = Host.CreateDefaultBuilder(args)
         {
             services.AddOptions<AppSettings>().Bind(hostingContext.Configuration);
             services.AddSingleton<ITimeProvider, TimeProvider>();
+
+            services.AddGrpcClient<StockPriceService.StockPriceServiceClient>(
+                    "StockPriceServiceClient",
+                    (servicesProvider, o) =>
+                    {
+                        var appSettings = servicesProvider.GetRequiredService<IOptions<AppSettings>>();
+                        o.Address = new Uri(appSettings.Value.LinebotGrpcHost);
+                    })
+                .ConfigurePrimaryHttpMessageHandler(
+                    () =>
+                    {
+                        var httpClientHandler = new HttpClientHandler();
+
+                        // Validate the server certificate
+                        httpClientHandler.ServerCertificateCustomValidationCallback =
+                            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
+                        // Pass the client certificate so the server can authenticate the client
+                        var clientCert = X509Certificate2.CreateFromPemFile("certs/grpc.crt", "certs/grpc.key");
+                        httpClientHandler.ClientCertificates.Add(clientCert);
+
+                        return httpClientHandler;
+                    });
+
             LogManager.Configuration = new NLogLoggingConfiguration(hostingContext.Configuration.GetSection("NLog"));
         })
     .ConfigureContainer<ContainerBuilder>(

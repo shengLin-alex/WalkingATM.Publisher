@@ -10,8 +10,8 @@ namespace WalkingATM.Publisher.BackgroundJobs;
 public abstract class StopPushJobBase : BackgroundService
 {
     private readonly IOptions<AppSettings> _appSettings;
-    private readonly ILogger<StopPushJobBase> _logger;
     private readonly ILifetimeScope _lifetimeScope;
+    private readonly ILogger<StopPushJobBase> _logger;
     private readonly ILogFileMonitor _monitor;
 
     protected StopPushJobBase(
@@ -50,7 +50,7 @@ public abstract class StopPushJobBase : BackgroundService
         }
         catch (Exception e)
         {
-            _logger.LogCritical(e.Message, e);
+            _logger.LogCritical(e, "{Message}, {StackTrace}", e.Message, e.StackTrace);
         }
     }
 }

@@ -10,7 +10,8 @@ namespace WalkingATM.Publisher.BackgroundJobs.Intraday;
 public class IntradayRisingStopJob : StopPushJobBase
 {
     public IntradayRisingStopJob(
-        [KeyFilter(StrategyEnum.IntradayRising)] ILogFileMonitor logFileMonitor,
+        [KeyFilter(StrategyEnum.IntradayRising)]
+        ILogFileMonitor logFileMonitor,
         ILifetimeScope lifetimeScope,
         IOptions<AppSettings> appSettings,
         ILogger<IntradayRisingStopJob> logger) : base(

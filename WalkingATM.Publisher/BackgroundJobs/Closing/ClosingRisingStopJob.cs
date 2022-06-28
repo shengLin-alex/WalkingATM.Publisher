@@ -10,7 +10,8 @@ namespace WalkingATM.Publisher.BackgroundJobs.Closing;
 public class ClosingRisingStopJob : StopPushJobBase
 {
     public ClosingRisingStopJob(
-        [KeyFilter(StrategyEnum.ClosingRising)] ILogFileMonitor logFileMonitor,
+        [KeyFilter(StrategyEnum.ClosingRising)]
+        ILogFileMonitor logFileMonitor,
         ILifetimeScope lifetimeScope,
         IOptions<AppSettings> appSettings,
         ILogger<ClosingRisingStopJob> logger) : base(logFileMonitor, lifetimeScope, appSettings, logger)

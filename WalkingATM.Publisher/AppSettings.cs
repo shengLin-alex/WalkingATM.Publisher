@@ -6,4 +6,6 @@ public class AppSettings
     public string PushLogDataJobCron { get; init; } = null!;
     public string StopPushJobCron { get; init; } = null!;
     public string XQLogFilePath { get; init; } = null!;
+    public string LinebotGrpcHost { get; init; } = null!;
+    public string StockPriceServiceClient { get; init; } = null!;
 }

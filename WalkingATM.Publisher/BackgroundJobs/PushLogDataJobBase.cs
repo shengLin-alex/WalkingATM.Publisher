@@ -70,7 +70,7 @@ public abstract class PushLogDataJobBase : BackgroundService
         }
         catch (Exception e)
         {
-            _logger.LogCritical(e.Message, e);
+            _logger.LogCritical(e, "{Message}, {StackTrace}", e.Message, e.StackTrace);
         }
     }
 }

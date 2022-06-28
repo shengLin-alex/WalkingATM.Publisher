@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option csharp_namespace = "GrpcServiceNet60";
+option csharp_namespace = "WalkingATM.Publisher";
 
-package src.grpc.protos;
+package stock;
 
 message StockPrice {
   string strategy = 1;
