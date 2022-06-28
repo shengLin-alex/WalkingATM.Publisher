@@ -4,6 +4,11 @@ option csharp_namespace = "WalkingATM.Publisher";
 
 package stock;
 
+service StockPriceService {
+  rpc StockPricesHealthCheck (Empty) returns (StockPriceList) {}
+  rpc PushStockPrices (StockPriceList) returns (Res) {}
+}
+
 message StockPrice {
   string strategy = 1;
   string date = 2;
@@ -13,12 +18,14 @@ message StockPrice {
   string price = 6;
 }
 
-service StockPriceService {
-  rpc StockPricesHealthCheck (Empty) returns (StockPriceList) {}
+message StockPriceList {
+  repeated StockPrice stockPrices = 1;
 }
 
 message Empty {}
 
-message StockPriceList {
-  repeated StockPrice stockPrices = 1;
+message Res {
+  string code = 1;
+  string message = 2;
+  string payload = 3;
 }

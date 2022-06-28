@@ -2,6 +2,7 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Autofac.Features.AttributeFilters;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ using NLog;
 using NLog.Extensions.Hosting;
 using NLog.Extensions.Logging;
 using WalkingATM.Publisher;
+using WalkingATM.Publisher.GrpcClient.Services;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Strategies;
 using WalkingATM.Publisher.Utils;
@@ -17,12 +19,19 @@ using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 var builder2 = Host.CreateDefaultBuilder(args)
     .UseServiceProviderFactory(new AutofacServiceProviderFactory())
+    .ConfigureAppConfiguration(
+        configureBuilder =>
+        {
+            configureBuilder.AddJsonFile("appsettings.json", false)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true)
+                .AddEnvironmentVariables();
+        })
     .ConfigureServices(
         (hostingContext, services) =>
         {
             services.AddOptions<AppSettings>().Bind(hostingContext.Configuration);
             services.AddSingleton<ITimeProvider, TimeProvider>();
-
+            services.AddTransient<IStockPriceClientService, StockPriceClientService>();
             services.AddGrpcClient<StockPriceService.StockPriceServiceClient>(
                     "StockPriceServiceClient",
                     (servicesProvider, o) =>

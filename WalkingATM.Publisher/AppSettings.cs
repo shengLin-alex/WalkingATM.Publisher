@@ -8,4 +8,5 @@ public class AppSettings
     public string XQLogFilePath { get; init; } = null!;
     public string LinebotGrpcHost { get; init; } = null!;
     public string StockPriceServiceClient { get; init; } = null!;
+    public string XQLogFileRecordSeparator { get; init; } = null!;
 }

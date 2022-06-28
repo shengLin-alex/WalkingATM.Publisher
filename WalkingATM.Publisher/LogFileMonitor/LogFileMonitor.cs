@@ -1,5 +1,6 @@
 using System.Timers;
 using Microsoft.Extensions.Logging;
+using WalkingATM.Publisher.Extensions;
 using Timer = System.Timers.Timer;
 
 #pragma warning disable CS8618
@@ -13,13 +14,15 @@ public interface ILogFileMonitor
     /// </summary>
     string Delimiter { get; set; }
 
-    event EventHandler<LogFileMonitorLineEventArgs> OnLine;
     void Start(string path);
     void Stop();
+    void OnLineCallback(EventHandler<LogFileMonitorLineEventArgs> onLine);
 }
 
 public class LogFileMonitor : ILogFileMonitor
 {
+    private static readonly object SyncRoot = new();
+
     private readonly ILogger<LogFileMonitor> _logger;
 
     // buffer for storing data at the end of the file that does not yet have a delimiter
@@ -35,7 +38,7 @@ public class LogFileMonitor : ILogFileMonitor
     private string _path;
 
     // timer object
-    private Timer _t;
+    private Timer? _t;
 
     public LogFileMonitor(ILogger<LogFileMonitor> logger)
     {
@@ -43,28 +46,30 @@ public class LogFileMonitor : ILogFileMonitor
     }
 
     public string Delimiter { get; set; } = "\n";
-    public event EventHandler<LogFileMonitorLineEventArgs> OnLine;
 
     public void Start(string path)
     {
-        _path = path;
-
-        // get the current size
-        var fileInfo = new FileInfo(_path);
-        if (!fileInfo.Exists)
+        lock (SyncRoot)
         {
-            using (fileInfo.Create())
+            _path = path;
+
+            // get the current size
+            var fileInfo = new FileInfo(_path);
+            if (!fileInfo.Exists)
             {
+                using (fileInfo.Create())
+                {
+                }
             }
+
+            _currentSize = fileInfo.Length;
+
+            // start the timer
+            _t = new Timer();
+            _t.Elapsed += CheckLog!;
+            _t.AutoReset = true;
+            _t.Start();
         }
-
-        _currentSize = fileInfo.Length;
-
-        // start the timer
-        _t = new Timer();
-        _t.Elapsed += CheckLog!;
-        _t.AutoReset = true;
-        _t.Start();
     }
 
     /// <summary>
@@ -72,32 +77,40 @@ public class LogFileMonitor : ILogFileMonitor
     /// </summary>
     public void Stop()
     {
-        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-        if (_t == null)
-            return;
-
-        _t.Stop();
-        _t.Elapsed -= CheckLog!;
-
-        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-        if (OnLine is not null)
+        lock (SyncRoot)
         {
-            foreach (var @delegate in OnLine.GetInvocationList())
+            if (_t == null)
+                return;
+
+            _t.Stop();
+            _t.Elapsed -= CheckLog!;
+
+            if (OnLine.IsRegistered())
             {
-                OnLine -= (EventHandler<LogFileMonitorLineEventArgs>)@delegate;
+                OnLine = null;
             }
-        }
 
-        lock (_t)
-        {
             _isCheckingLog = false;
             _buffer = string.Empty;
         }
     }
 
+    private event EventHandler<LogFileMonitorLineEventArgs>? OnLine;
+
+    public void OnLineCallback(EventHandler<LogFileMonitorLineEventArgs> onLine)
+    {
+        lock (SyncRoot)
+        {
+            if (!OnLine.IsRegistered(onLine))
+            {
+                OnLine += onLine;
+            }
+        }
+    }
+
     private bool StartCheckingLog()
     {
-        lock (_t)
+        lock (SyncRoot)
         {
             if (_isCheckingLog)
                 return true;
@@ -109,7 +122,7 @@ public class LogFileMonitor : ILogFileMonitor
 
     private void DoneCheckingLog()
     {
-        lock (_t)
+        lock (SyncRoot)
             _isCheckingLog = false;
     }
 
@@ -158,7 +171,6 @@ public class LogFileMonitor : ILogFileMonitor
                     var lines = newData.Split(new[] { Delimiter }, StringSplitOptions.RemoveEmptyEntries);
 
                     // send back to caller, NOTE: this is done from a different thread!
-                    // ReSharper disable once ConstantConditionalAccessQualifier
                     OnLine?.Invoke(this, new LogFileMonitorLineEventArgs { Lines = lines });
                 }
 

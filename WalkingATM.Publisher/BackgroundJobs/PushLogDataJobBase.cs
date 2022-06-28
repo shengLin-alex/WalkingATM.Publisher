@@ -2,6 +2,7 @@ using Autofac;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using WalkingATM.Publisher.GrpcClient.Services;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Strategies;
 using WalkingATM.Publisher.Utils;
@@ -52,16 +53,23 @@ public abstract class PushLogDataJobBase : BackgroundService
 
             while (await cronTimer.WaitForNextTickAsync())
             {
-                if (!_timeProvider.IsWorkingDay()) continue;
-
-                _monitor.OnLine += (_, e) =>
+                if (!_timeProvider.IsWorkingDay())
                 {
-                    foreach (var line in e.Lines)
+                    continue;
+                }
+
+                var stockPriceClientService = serviceScope.Resolve<IStockPriceClientService>();
+                _monitor.OnLineCallback(
+                    (_, e) =>
                     {
-                        // todo push data to line bot server
-                        _logger.LogInformation("{Line}", line);
-                    }
-                };
+                        // todo: when program open a while, event may cause some bug...
+                        // fire and forget?
+                        stockPriceClientService.PushStockPrices(e.Lines);
+                        foreach (var line in e.Lines)
+                        {
+                            _logger.LogInformation("{Line}", line);
+                        }
+                    });
 
                 var date = DateTime.Now.ToString(_appSettings.Value.XQLogFileDateTimeFormat);
 
