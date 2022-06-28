@@ -62,6 +62,7 @@ var builder2 = Host.CreateDefaultBuilder(args)
         {
             containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
                 .Where(t => t.IsAssignableTo<IHostedService>())
+                .Where(t => !t.IsAbstract)
                 .As<IHostedService>()
                 .WithAttributeFiltering()
                 .SingleInstance();
@@ -73,7 +74,9 @@ var builder2 = Host.CreateDefaultBuilder(args)
             // 4. add KeyFilter to new strategy push stop job
             foreach (var strategyEnum in Enum.GetValues<StrategyEnum>())
             {
-                containerBuilder.RegisterType<LogFileMonitor>()
+                containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+                    .Where(t => t.IsAssignableTo<ILogFileMonitor>())
+                    .Where(t => t.Name.StartsWith(strategyEnum.ToString()))
                     .Keyed<ILogFileMonitor>(strategyEnum)
                     .SingleInstance();
 

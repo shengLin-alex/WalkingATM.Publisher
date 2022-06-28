@@ -19,11 +19,11 @@ public interface ILogFileMonitor
     void OnLineCallback(EventHandler<LogFileMonitorLineEventArgs> onLine);
 }
 
-public class LogFileMonitor : ILogFileMonitor
+public abstract class LogFileMonitorBase : ILogFileMonitor
 {
-    private static readonly object SyncRoot = new();
+    private readonly object _syncRoot = new();
 
-    private readonly ILogger<LogFileMonitor> _logger;
+    private readonly ILogger<LogFileMonitorBase> _logger;
 
     // buffer for storing data at the end of the file that does not yet have a delimiter
     private string _buffer = string.Empty;
@@ -40,7 +40,7 @@ public class LogFileMonitor : ILogFileMonitor
     // timer object
     private Timer? _t;
 
-    public LogFileMonitor(ILogger<LogFileMonitor> logger)
+    protected LogFileMonitorBase(ILogger<LogFileMonitorBase> logger)
     {
         _logger = logger;
     }
@@ -49,7 +49,7 @@ public class LogFileMonitor : ILogFileMonitor
 
     public void Start(string path)
     {
-        lock (SyncRoot)
+        lock (_syncRoot)
         {
             _path = path;
 
@@ -77,13 +77,15 @@ public class LogFileMonitor : ILogFileMonitor
     /// </summary>
     public void Stop()
     {
-        lock (SyncRoot)
+        lock (_syncRoot)
         {
             if (_t == null)
                 return;
 
             _t.Stop();
             _t.Elapsed -= CheckLog!;
+            _t.Dispose();
+            _t = null;
 
             if (OnLine.IsRegistered())
             {
@@ -99,7 +101,7 @@ public class LogFileMonitor : ILogFileMonitor
 
     public void OnLineCallback(EventHandler<LogFileMonitorLineEventArgs> onLine)
     {
-        lock (SyncRoot)
+        lock (_syncRoot)
         {
             if (!OnLine.IsRegistered(onLine))
             {
@@ -110,7 +112,7 @@ public class LogFileMonitor : ILogFileMonitor
 
     private bool StartCheckingLog()
     {
-        lock (SyncRoot)
+        lock (_syncRoot)
         {
             if (_isCheckingLog)
                 return true;
@@ -122,7 +124,7 @@ public class LogFileMonitor : ILogFileMonitor
 
     private void DoneCheckingLog()
     {
-        lock (SyncRoot)
+        lock (_syncRoot)
             _isCheckingLog = false;
     }
 
