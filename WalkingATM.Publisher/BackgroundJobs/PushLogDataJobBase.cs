@@ -88,7 +88,8 @@ public abstract class PushLogDataJobBase : BackgroundService
                         }
                     });
 
-                var date = DateTime.Now.ToString(_appSettings.Value.XQLogFileDateTimeFormat);
+                var date = _timeProvider.GetNowByTimeZoneId(_appSettings.Value.TimeZoneId)
+                    .ToString(_appSettings.Value.XQLogFileDateTimeFormat);
 
                 _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, _strategy.StrategyName, date));
             }

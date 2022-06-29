@@ -7,8 +7,17 @@ public interface ICronTimerFactory
 
 public class CronTimerFactory : ICronTimerFactory
 {
+    private readonly ITimeProvider _timeProvider;
+
+    public CronTimerFactory(ITimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
+
     public ICronTimer CreateCronTimer(string cronExpression)
     {
-        return new CronTimer(cronExpression);
+        return new CronTimer(
+            cronExpression,
+            _timeProvider);
     }
 }

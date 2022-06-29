@@ -13,21 +13,18 @@ public interface IStockPriceClientService
 public class StockPriceClientService : IStockPriceClientService
 {
     private readonly IOptions<AppSettings> _appSettings;
-    private readonly GrpcClientFactory _grpcClientFactory;
+    private readonly StockPriceService.StockPriceServiceClient _stockPriceServiceClient;
     private StockPriceSource? _previousProcessed;
 
     public StockPriceClientService(IOptions<AppSettings> appSettings, GrpcClientFactory grpcClientFactory)
     {
         _appSettings = appSettings;
-        _grpcClientFactory = grpcClientFactory;
+        _stockPriceServiceClient = grpcClientFactory.CreateClient<StockPriceService.StockPriceServiceClient>(
+            _appSettings.Value.StockPriceServiceClient);
     }
 
     public async Task PushStockPrices(IEnumerable<string> stockPriceStrings, IStrategy strategy)
     {
-        var stockPriceServiceClient =
-            _grpcClientFactory.CreateClient<StockPriceService.StockPriceServiceClient>(
-                _appSettings.Value.StockPriceServiceClient);
-
         var prices = new List<StockPrice>();
         foreach (var stockPriceString in stockPriceStrings)
         {
@@ -52,7 +49,9 @@ public class StockPriceClientService : IStockPriceClientService
             _previousProcessed = s;
         }
 
-        var result = await stockPriceServiceClient.PushStockPricesAsync(
+        if (prices.Count == 0) return;
+
+        var result = await _stockPriceServiceClient.PushStockPricesAsync(
             new StockPriceList
             {
                 StockPrices = { prices }

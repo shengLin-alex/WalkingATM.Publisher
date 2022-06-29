@@ -4,6 +4,7 @@ public class AppSettings
 {
     public string PushLogDataJobCron { get; init; } = null!;
     public string StopPushJobCron { get; init; } = null!;
+    public string TimeZoneId { get; init; } = null!;
     public string XQLogFileDateTimeFormat { get; init; } = null!;
     public string XQLogFileRecordSeparator { get; init; } = null!;
     public string XQLogFilePath { get; init; } = null!;

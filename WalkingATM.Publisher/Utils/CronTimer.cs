@@ -29,39 +29,45 @@ public class CronTimer : ICronTimer, IDisposable
 {
     private readonly CronExpression _expression;
     private readonly State _state;
+    private readonly ITimeProvider _timeProvider;
     private readonly Timer _timer;
     private readonly TimeZoneInfo _zone;
     private bool _canceled;
 
-    /// <summary>Initializes the timer with the given cron expression and <see cref="TimeZoneInfo.Utc"/> zone.</summary>
+    /// <summary>Initializes the timer with the given cron expression and time zone from appsettings.</summary>
     /// <param name="expression">The cron expression to use.</param>
-    public CronTimer(string expression)
-        : this(expression, TimeZoneInfo.Utc)
+    /// <param name="timeProvider"></param>
+    public CronTimer(string expression, ITimeProvider timeProvider)
+        : this(expression, timeProvider.TimeZoneByAppSetting, timeProvider)
     {
     }
 
     /// <summary>Initializes the timer with the given cron expression and time zone.</summary>
     /// <param name="expression">The cron expression to use.</param>
     /// <param name="zone">The time zone to use.</param>
-    public CronTimer(string expression, TimeZoneInfo zone)
-        : this(CronExpression.Parse(expression), zone)
+    /// <param name="timeProvider"></param>
+    public CronTimer(string expression, TimeZoneInfo zone, ITimeProvider timeProvider)
+        : this(CronExpression.Parse(expression), zone, timeProvider)
     {
     }
 
-    /// <summary>Initializes the timer with the given cron expression and <see cref="TimeZoneInfo.Utc"/> zone.</summary>
+    /// <summary>Initializes the timer with the given cron expression and time zone from appsettings.</summary>
     /// <param name="expression">The cron expression to use. Use <see cref="CronExpression.Parse(string, CronFormat)"/> for non-standard cron expressions.</param>
-    public CronTimer(CronExpression expression)
-        : this(expression, TimeZoneInfo.Utc)
+    /// <param name="timeProvider"></param>
+    public CronTimer(CronExpression expression, ITimeProvider timeProvider)
+        : this(expression, timeProvider.TimeZoneByAppSetting, timeProvider)
     {
     }
 
     /// <summary>Initializes the timer with the given cron expression and time zone.</summary>
     /// <param name="expression">The cron expression to use. Use <see cref="CronExpression.Parse(string, CronFormat)"/> for non-standard cron expressions.</param>
     /// <param name="zone">The time zone to use.</param>
-    public CronTimer(CronExpression expression, TimeZoneInfo zone)
+    /// <param name="timeProvider"></param>
+    public CronTimer(CronExpression expression, TimeZoneInfo zone, ITimeProvider timeProvider)
     {
         _expression = expression;
         _zone = zone;
+        _timeProvider = timeProvider;
         _state = new State();
         _timer = new Timer(s => ((State)s!).Signal(), _state, Timeout.Infinite, Timeout.Infinite);
     }
@@ -77,7 +83,7 @@ public class CronTimer : ICronTimer, IDisposable
     /// </remarks>
     public ValueTask<bool> WaitForNextTickAsync(CancellationToken cancellationToken = default)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = _timeProvider.UtcNowOffset;
         var next = _expression.GetNextOccurrence(now, _zone);
 
         if (next is null)
