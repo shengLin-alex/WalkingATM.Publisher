@@ -16,7 +16,10 @@ public abstract class PushLogDataJobBase : BackgroundService
     private readonly ILogger<PushLogDataJobBase> _logger;
     private readonly ILogFileMonitor _monitor;
     private readonly IStrategy _strategy;
+    private readonly object _syncRoot = new();
     private readonly ITimeProvider _timeProvider;
+    private string[] _cachedLines = Array.Empty<string>();
+    private bool _isPushed;
 
     protected PushLogDataJobBase(
         ILifetimeScope lifeTimeScope,
@@ -62,12 +65,26 @@ public abstract class PushLogDataJobBase : BackgroundService
                 _monitor.OnLineCallback(
                     (_, e) =>
                     {
-                        // todo: when program open a while, event may cause some bug...
-                        // fire and forget?
-                        stockPriceClientService.PushStockPrices(e.Lines);
-                        foreach (var line in e.Lines)
+                        lock (_syncRoot)
                         {
-                            _logger.LogInformation("{Line}", line);
+                            if (_isPushed && e.Lines.SequenceEqual(_cachedLines))
+                                return;
+                            
+                            if (_isPushed && !e.Lines.SequenceEqual(_cachedLines))
+                                _isPushed = false;
+
+                            if (_isPushed)
+                                return;
+
+                            // fire and forget
+                            stockPriceClientService.PushStockPrices(e.Lines);
+                            foreach (var line in e.Lines)
+                            {
+                                _logger.LogInformation("{Line}", line);
+                            }
+
+                            _isPushed = true;
+                            _cachedLines = e.Lines;
                         }
                     });
 
@@ -78,7 +95,10 @@ public abstract class PushLogDataJobBase : BackgroundService
         }
         catch (Exception e)
         {
-            _logger.LogCritical(e, "{Message}, {StackTrace}", e.Message, e.StackTrace);
+            lock (_syncRoot)
+            {
+                _logger.LogCritical(e, "{Message}, {StackTrace}", e.Message, e.StackTrace);
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Timers;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.Extensions;
 using Timer = System.Timers.Timer;
 
@@ -24,6 +25,7 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
     private readonly object _syncRoot = new();
 
     private readonly ILogger<LogFileMonitorBase> _logger;
+    private readonly IOptions<AppSettings> _appSettings;
 
     // buffer for storing data at the end of the file that does not yet have a delimiter
     private string _buffer = string.Empty;
@@ -40,9 +42,10 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
     // timer object
     private Timer? _t;
 
-    protected LogFileMonitorBase(ILogger<LogFileMonitorBase> logger)
+    protected LogFileMonitorBase(ILogger<LogFileMonitorBase> logger, IOptions<AppSettings> appSettings)
     {
         _logger = logger;
+        _appSettings = appSettings;
     }
 
     public string Delimiter { get; set; } = "\n";
@@ -66,6 +69,7 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
 
             // start the timer
             _t = new Timer();
+            _t.Interval = _appSettings.Value.LogFileMonitorTick;
             _t.Elapsed += CheckLog!;
             _t.AutoReset = true;
             _t.Start();

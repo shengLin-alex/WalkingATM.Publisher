@@ -67,6 +67,20 @@ var builder2 = Host.CreateDefaultBuilder(args)
                 .WithAttributeFiltering()
                 .SingleInstance();
 
+            // containerBuilder.RegisterType<IntradayRisingPushJob>()
+            //     .As<IHostedService>()
+            //     .WithAttributeFiltering()
+            //     .SingleInstance();
+            //
+            // containerBuilder.RegisterType<IntradayRisingStopJob>()
+            //     .As<IHostedService>()
+            //     .WithAttributeFiltering()
+            //     .SingleInstance();
+            //
+            // containerBuilder.RegisterType<IntradayRisingLogFileMonitor>()
+            //     .Keyed<ILogFileMonitor>(StrategyEnum.IntradayRising)
+            //     .SingleInstance();
+
             // add new strategy:
             // 1. create new strategy push and stop job
             // 2. create new strategy class
