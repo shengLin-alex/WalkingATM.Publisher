@@ -23,7 +23,7 @@ public class StockPriceClientService : IStockPriceClientService
     public async Task PushStockPrices(IEnumerable<string> stockPriceStrings)
     {
         var stockPriceServiceClient =
-            _grpcClientFactory.CreateClient<Publisher.StockPriceService.StockPriceServiceClient>(
+            _grpcClientFactory.CreateClient<StockPriceService.StockPriceServiceClient>(
                 _appSettings.Value.StockPriceServiceClient);
 
         var stockPriceList = new StockPriceList

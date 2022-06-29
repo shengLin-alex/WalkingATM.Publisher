@@ -69,7 +69,7 @@ public abstract class PushLogDataJobBase : BackgroundService
                         {
                             if (_isPushed && e.Lines.SequenceEqual(_cachedLines))
                                 return;
-                            
+
                             if (_isPushed && !e.Lines.SequenceEqual(_cachedLines))
                                 _isPushed = false;
 

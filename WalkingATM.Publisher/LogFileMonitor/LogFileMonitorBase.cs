@@ -22,10 +22,10 @@ public interface ILogFileMonitor
 
 public abstract class LogFileMonitorBase : ILogFileMonitor
 {
-    private readonly object _syncRoot = new();
+    private readonly IOptions<AppSettings> _appSettings;
 
     private readonly ILogger<LogFileMonitorBase> _logger;
-    private readonly IOptions<AppSettings> _appSettings;
+    private readonly object _syncRoot = new();
 
     // buffer for storing data at the end of the file that does not yet have a delimiter
     private string _buffer = string.Empty;
@@ -101,8 +101,6 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
         }
     }
 
-    private event EventHandler<LogFileMonitorLineEventArgs>? OnLine;
-
     public void OnLineCallback(EventHandler<LogFileMonitorLineEventArgs> onLine)
     {
         lock (_syncRoot)
@@ -113,6 +111,8 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
             }
         }
     }
+
+    private event EventHandler<LogFileMonitorLineEventArgs>? OnLine;
 
     private bool StartCheckingLog()
     {
