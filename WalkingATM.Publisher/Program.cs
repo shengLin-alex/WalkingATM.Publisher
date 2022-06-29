@@ -17,19 +17,19 @@ using WalkingATM.Publisher.Strategies;
 using WalkingATM.Publisher.Utils;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-var builder2 = Host.CreateDefaultBuilder(args)
+var hostBuilder = Host.CreateDefaultBuilder(args)
     .UseServiceProviderFactory(new AutofacServiceProviderFactory())
     .ConfigureAppConfiguration(
-        configureBuilder =>
+        builder =>
         {
-            configureBuilder.AddJsonFile("appsettings.json", false)
+            builder.AddJsonFile("appsettings.json", false)
                 .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true)
                 .AddEnvironmentVariables();
         })
     .ConfigureServices(
-        (hostingContext, services) =>
+        (context, services) =>
         {
-            services.AddOptions<AppSettings>().Bind(hostingContext.Configuration);
+            services.AddOptions<AppSettings>().Bind(context.Configuration);
             services.AddSingleton<ITimeProvider, TimeProvider>();
             services.AddTransient<IStockPriceClientService, StockPriceClientService>();
             services.AddGrpcClient<StockPriceService.StockPriceServiceClient>(
@@ -55,53 +55,40 @@ var builder2 = Host.CreateDefaultBuilder(args)
                         return httpClientHandler;
                     });
 
-            LogManager.Configuration = new NLogLoggingConfiguration(hostingContext.Configuration.GetSection("NLog"));
+            LogManager.Configuration = new NLogLoggingConfiguration(context.Configuration.GetSection("NLog"));
         })
     .ConfigureContainer<ContainerBuilder>(
-        (_, containerBuilder) =>
+        (_, builder) =>
         {
-            containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+            builder.RegisterAssemblyTypes(typeof(Program).Assembly)
                 .Where(t => t.IsAssignableTo<IHostedService>())
                 .Where(t => !t.IsAbstract)
                 .As<IHostedService>()
                 .WithAttributeFiltering()
                 .SingleInstance();
 
-            // containerBuilder.RegisterType<IntradayRisingPushJob>()
-            //     .As<IHostedService>()
-            //     .WithAttributeFiltering()
-            //     .SingleInstance();
-            //
-            // containerBuilder.RegisterType<IntradayRisingStopJob>()
-            //     .As<IHostedService>()
-            //     .WithAttributeFiltering()
-            //     .SingleInstance();
-            //
-            // containerBuilder.RegisterType<IntradayRisingLogFileMonitor>()
-            //     .Keyed<ILogFileMonitor>(StrategyEnum.IntradayRising)
-            //     .SingleInstance();
-
             // add new strategy:
             // 1. create new strategy push and stop job
             // 2. create new strategy class
+            // 3. create new LogFileMonitor class for new strategy
             // 3. add new strategy value to enum
             // 4. add KeyFilter to new strategy push stop job
             foreach (var strategyEnum in Enum.GetValues<StrategyEnum>())
             {
-                containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+                builder.RegisterAssemblyTypes(typeof(Program).Assembly)
                     .Where(t => t.IsAssignableTo<ILogFileMonitor>())
                     .Where(t => t.Name.StartsWith(strategyEnum.ToString()))
                     .Keyed<ILogFileMonitor>(strategyEnum)
                     .SingleInstance();
 
-                containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+                builder.RegisterAssemblyTypes(typeof(Program).Assembly)
                     .Where(t => t.IsAssignableTo<IStrategy>())
                     .Where(t => t.Name.StartsWith(strategyEnum.ToString()))
                     .Keyed<IStrategy>(strategyEnum)
                     .SingleInstance();
             }
 
-            containerBuilder.RegisterType<CronTimerFactory>()
+            builder.RegisterType<CronTimerFactory>()
                 .As<ICronTimerFactory>()
                 .InstancePerLifetimeScope();
         })
@@ -113,5 +100,5 @@ var builder2 = Host.CreateDefaultBuilder(args)
         })
     .UseNLog();
 
-using var host = builder2.Build();
+using var host = hostBuilder.Build();
 await host.RunAsync();
