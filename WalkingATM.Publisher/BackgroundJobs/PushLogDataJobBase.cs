@@ -52,6 +52,7 @@ public abstract class PushLogDataJobBase : BackgroundService
         {
             await using var serviceScope = _lifetimeScope.BeginLifetimeScope();
             var cronTimerFactory = serviceScope.Resolve<ICronTimerFactory>();
+            var stockPriceClientService = serviceScope.Resolve<IStockPriceClientService>();
             var cronTimer = cronTimerFactory.CreateCronTimer(_appSettings.Value.PushLogDataJobCron);
 
             while (await cronTimer.WaitForNextTickAsync())
@@ -61,7 +62,6 @@ public abstract class PushLogDataJobBase : BackgroundService
                     continue;
                 }
 
-                var stockPriceClientService = serviceScope.Resolve<IStockPriceClientService>();
                 _monitor.OnLineCallback(
                     (_, e) =>
                     {
@@ -77,7 +77,7 @@ public abstract class PushLogDataJobBase : BackgroundService
                                 return;
 
                             // fire and forget
-                            stockPriceClientService.PushStockPrices(e.Lines);
+                            stockPriceClientService.PushStockPrices(e.Lines, _strategy);
                             foreach (var line in e.Lines)
                             {
                                 _logger.LogInformation("{Line}", line);

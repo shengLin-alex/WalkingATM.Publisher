@@ -1,18 +1,20 @@
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.GrpcClient.Exceptions;
+using WalkingATM.Publisher.Strategies;
 
 namespace WalkingATM.Publisher.GrpcClient.Services;
 
 public interface IStockPriceClientService
 {
-    Task PushStockPrices(IEnumerable<string> stockPriceStrings);
+    Task PushStockPrices(IEnumerable<string> stockPriceStrings, IStrategy strategy);
 }
 
 public class StockPriceClientService : IStockPriceClientService
 {
     private readonly IOptions<AppSettings> _appSettings;
     private readonly GrpcClientFactory _grpcClientFactory;
+    private StockPriceSource? _previousProcessed;
 
     public StockPriceClientService(IOptions<AppSettings> appSettings, GrpcClientFactory grpcClientFactory)
     {
@@ -20,33 +22,42 @@ public class StockPriceClientService : IStockPriceClientService
         _grpcClientFactory = grpcClientFactory;
     }
 
-    public async Task PushStockPrices(IEnumerable<string> stockPriceStrings)
+    public async Task PushStockPrices(IEnumerable<string> stockPriceStrings, IStrategy strategy)
     {
         var stockPriceServiceClient =
             _grpcClientFactory.CreateClient<StockPriceService.StockPriceServiceClient>(
                 _appSettings.Value.StockPriceServiceClient);
 
-        var stockPriceList = new StockPriceList
+        var prices = new List<StockPrice>();
+        foreach (var stockPriceString in stockPriceStrings)
         {
-            StockPrices =
-            {
-                stockPriceStrings
-                    .Select(s => new StockPriceSource(s, _appSettings.Value.XQLogFileRecordSeparator))
-                    .Select(
-                        stockPriceSource => new StockPrice
-                        {
-                            Strategy = stockPriceSource.Strategy,
-                            Date = stockPriceSource.Date,
-                            Time = stockPriceSource.Time,
-                            Symbol = stockPriceSource.Symbol,
-                            SymbolName = stockPriceSource.SymbolName,
-                            Price = stockPriceSource.Price
-                        })
-                    .ToList()
-            }
-        };
+            var s = new StockPriceSource(stockPriceString, _appSettings.Value.XQLogFileRecordSeparator);
+            if (s.TimeOnly < strategy.StartTimeOnly)
+                continue;
 
-        var result = await stockPriceServiceClient.PushStockPricesAsync(stockPriceList);
+            if (StockPriceSource.StockPriceSourceComparer.Equals(s, _previousProcessed))
+                continue;
+
+            prices.Add(
+                new StockPrice
+                {
+                    Strategy = s.Strategy,
+                    Date = s.Date,
+                    Time = s.Time,
+                    Symbol = s.Symbol,
+                    SymbolName = s.SymbolName,
+                    Price = s.Price
+                });
+
+            _previousProcessed = s;
+        }
+
+        var result = await stockPriceServiceClient.PushStockPricesAsync(
+            new StockPriceList
+            {
+                StockPrices = { prices }
+            });
+
         if (result is not null && result.Code != Code.Success)
         {
             throw new CannotPushStockPrices($"Code:{result.Code}, Message:{result.Message}");

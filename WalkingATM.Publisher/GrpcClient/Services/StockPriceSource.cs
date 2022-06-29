@@ -19,6 +19,7 @@ public class StockPriceSource
         Strategy = strings[0];
         Date = strings[1];
         Time = strings[2];
+        TimeOnly = TimeOnly.Parse(strings[2]);
         Symbol = strings[3];
         SymbolName = strings[4];
         // ignore strings[5]
@@ -28,6 +29,7 @@ public class StockPriceSource
     public string Strategy { get; }
     public string Date { get; }
     public string Time { get; }
+    public TimeOnly TimeOnly { get; }
     public string Symbol { get; }
     public string SymbolName { get; }
     public string Price { get; }
@@ -35,6 +37,9 @@ public class StockPriceSource
     public static IEqualityComparer<StockPriceSource> StockPriceSourceComparer { get; } =
         new StockPriceSourceEqualityComparer();
 
+    /// <summary>
+    /// only compare Strategy & Date & most important Symbol, SymbolName
+    /// </summary>
     private sealed class StockPriceSourceEqualityComparer : IEqualityComparer<StockPriceSource>
     {
         public bool Equals(StockPriceSource? x, StockPriceSource? y)
@@ -43,16 +48,12 @@ public class StockPriceSource
             if (ReferenceEquals(x, null)) return false;
             if (ReferenceEquals(y, null)) return false;
             if (x.GetType() != y.GetType()) return false;
-            return x.Strategy == y.Strategy &&
-                   x.Date == y.Date &&
-                   x.Time == y.Time &&
-                   x.Symbol == y.Symbol &&
-                   x.SymbolName == y.SymbolName;
+            return x.Strategy == y.Strategy && x.Date == y.Date && x.Symbol == y.Symbol && x.SymbolName == y.SymbolName;
         }
 
         public int GetHashCode(StockPriceSource obj)
         {
-            return HashCode.Combine(obj.Strategy, obj.Date, obj.Time, obj.Symbol, obj.SymbolName);
+            return HashCode.Combine(obj.Strategy, obj.Date, obj.Symbol, obj.SymbolName);
         }
     }
 }
