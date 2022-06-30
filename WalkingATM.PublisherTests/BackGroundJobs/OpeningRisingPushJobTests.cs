@@ -109,7 +109,7 @@ public class OpeningRisingPushJobTests
     [Test]
     public async Task Execute_Once()
     {
-        _cronTimer.WaitForNextTickAsync().Returns(true, false); // first and second.
+        _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false); // first and second.
 
         _timeProvider.IsWorkingDay().Returns(true);
 
@@ -135,7 +135,8 @@ public class OpeningRisingPushJobTests
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { LineFromLogMonitor })),
-                _strategy);
+                _strategy,
+                Arg.Any<CancellationToken>());
 
         _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }
@@ -143,7 +144,7 @@ public class OpeningRisingPushJobTests
     [Test]
     public async Task Execute_Twice_With_Same_Line()
     {
-        _cronTimer.WaitForNextTickAsync().Returns(true, false);
+        _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false);
 
         _timeProvider.IsWorkingDay().Returns(true);
 
@@ -179,7 +180,8 @@ public class OpeningRisingPushJobTests
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { LineFromLogMonitor })),
-                _strategy);
+                _strategy,
+                Arg.Any<CancellationToken>());
 
         _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }
@@ -187,7 +189,7 @@ public class OpeningRisingPushJobTests
     [Test]
     public async Task Execute_Twice_With_Diff_Line()
     {
-        _cronTimer.WaitForNextTickAsync().Returns(true, false);
+        _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false);
 
         _timeProvider.IsWorkingDay().Returns(true);
 
@@ -223,12 +225,14 @@ public class OpeningRisingPushJobTests
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { LineFromLogMonitor })),
-                _strategy);
+                _strategy,
+                Arg.Any<CancellationToken>());
         
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { Line2FromLogMonitor })),
-                _strategy);
+                _strategy,
+                Arg.Any<CancellationToken>());
 
         _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }

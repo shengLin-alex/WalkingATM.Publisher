@@ -42,11 +42,11 @@ public abstract class PushLogDataJobBase : BackgroundService
     /// </summary>
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        Task.Run(Executing, stoppingToken);
+        Task.Run(() => Executing(stoppingToken), stoppingToken);
         return Task.CompletedTask;
     }
 
-    private async Task Executing()
+    private async Task Executing(CancellationToken cancellationToken)
     {
         try
         {
@@ -55,7 +55,7 @@ public abstract class PushLogDataJobBase : BackgroundService
             var stockPriceClientService = serviceScope.Resolve<IStockPriceClientService>();
             var cronTimer = cronTimerFactory.CreateCronTimer(_appSettings.Value.PushLogDataJobCron);
 
-            while (await cronTimer.WaitForNextTickAsync())
+            while (await cronTimer.WaitForNextTickAsync(cancellationToken))
             {
                 if (!_timeProvider.IsWorkingDay())
                 {
@@ -77,7 +77,7 @@ public abstract class PushLogDataJobBase : BackgroundService
                                 return;
 
                             // fire and forget
-                            stockPriceClientService.PushStockPrices(e.Lines, _strategy);
+                            stockPriceClientService.PushStockPrices(e.Lines, _strategy, cancellationToken);
                             foreach (var line in e.Lines)
                             {
                                 _logger.LogInformation("{Line}", line);

@@ -7,7 +7,10 @@ namespace WalkingATM.Publisher.GrpcClient.Services;
 
 public interface IStockPriceClientService
 {
-    Task PushStockPrices(IEnumerable<string> stockPriceStrings, IStrategy strategy);
+    Task<StockPriceClientResult> PushStockPrices(
+        IEnumerable<string> stockPriceStrings,
+        IStrategy strategy,
+        CancellationToken cancellationToken);
 }
 
 public class StockPriceClientService : IStockPriceClientService
@@ -23,7 +26,10 @@ public class StockPriceClientService : IStockPriceClientService
             _appSettings.Value.StockPriceServiceClient);
     }
 
-    public async Task PushStockPrices(IEnumerable<string> stockPriceStrings, IStrategy strategy)
+    public async Task<StockPriceClientResult> PushStockPrices(
+        IEnumerable<string> stockPriceStrings,
+        IStrategy strategy,
+        CancellationToken cancellationToken)
     {
         var prices = new List<StockPrice>();
         foreach (var stockPriceString in stockPriceStrings)
@@ -49,13 +55,20 @@ public class StockPriceClientService : IStockPriceClientService
             _previousProcessed = s;
         }
 
-        if (prices.Count == 0) return;
+        if (prices.Count == 0)
+        {
+            return new StockPriceClientResult
+            {
+                Code = Code.Skip
+            };
+        }
 
         var result = await _stockPriceServiceClient.PushStockPricesAsync(
             new StockPriceList
             {
                 StockPrices = { prices }
-            });
+            },
+            cancellationToken: cancellationToken);
 
         if (result is not null && result.Code != Code.Success)
         {
@@ -66,5 +79,10 @@ public class StockPriceClientService : IStockPriceClientService
         {
             throw new Exception("Something wrong with gRPC server.");
         }
+
+        return new StockPriceClientResult
+        {
+            Code = Code.Success
+        };
     }
 }
