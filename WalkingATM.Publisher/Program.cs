@@ -104,5 +104,4 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
     .UseNLog();
 
 using var host = hostBuilder.Build();
-var hostEnvironment = host.Services.GetRequiredService<IHostEnvironment>();
 await host.RunAsync();
