@@ -10,3 +10,4 @@ SportsBook.Sync/Logs
 .sonarqube
 Data/
 WalkingATM.Publisher/certs/
+.vs/
