@@ -13,7 +13,7 @@ public interface ILogFileMonitor
     /// <summary>
     /// \n or \r\n(windows), default \n(linux)
     /// </summary>
-    string Delimiter { get; set; }
+    string Delimiter { get; }
 
     void Start(string path);
     void Stop();
@@ -48,7 +48,7 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
         _appSettings = appSettings;
     }
 
-    public string Delimiter { get; set; } = "\n";
+    public string Delimiter => _appSettings.Value.LogFileDelimiter;
 
     public void Start(string path)
     {

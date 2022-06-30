@@ -12,6 +12,7 @@ public class AppSettings
     public string LinebotGrpcHost { get; init; } = null!;
     public string StockPriceServiceClient { get; init; } = null!;
     public StrategySettings StrategySettings { get; init; } = null!;
+    public string LogFileDelimiter { get; init; } = null!;
 }
 
 public class StrategySettings
