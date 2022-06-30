@@ -11,6 +11,7 @@ using WalkingATM.Publisher;
 using WalkingATM.Publisher.GrpcClient;
 using WalkingATM.Publisher.GrpcClient.Services;
 using WalkingATM.Publisher.Strategies;
+using WalkingATM.Publisher.Utils;
 
 namespace WalkingATM.PublisherTests.GrpcClient;
 
@@ -37,17 +38,21 @@ public class StockPriceClientServiceTests
             });
 
         _stockPriceServiceClient = Substitute.For<StockPriceService.StockPriceServiceClient>();
+        _stringEncodingConverter = Substitute.For<IStringEncodingConverter>();
+        _stringEncodingConverter.GetUtf8String(Arg.Any<string>()).Returns(c => c[0]);
+        
         _grpcClientFactory
             .CreateClient<StockPriceService.StockPriceServiceClient>(_options.Value.StockPriceServiceClient)
             .Returns(_stockPriceServiceClient);
 
-        _stockPriceClientService = new StockPriceClientService(_options, _grpcClientFactory);
+        _stockPriceClientService = new StockPriceClientService(_options, _grpcClientFactory, _stringEncodingConverter);
     }
 
     private IOptions<AppSettings> _options;
     private GrpcClientFactory _grpcClientFactory;
     private StockPriceClientService _stockPriceClientService;
     private StockPriceService.StockPriceServiceClient _stockPriceServiceClient;
+    private IStringEncodingConverter _stringEncodingConverter;
 
     [Test]
     public async Task PushStockPrices_IntradayRising()

@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Autofac.Features.AttributeFilters;
@@ -32,6 +33,7 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
             services.AddOptions<AppSettings>().Bind(context.Configuration);
             services.AddSingleton<ITimeProvider, TimeProvider>();
             services.AddTransient<IStockPriceClientService, StockPriceClientService>();
+            services.AddTransient<IStringEncodingConverter, StringEncodingConverter>();
             services.AddGrpcClient<StockPriceService.StockPriceServiceClient>(
                     "StockPriceServiceClient",
                     (servicesProvider, o) =>
@@ -54,7 +56,8 @@ var hostBuilder = Host.CreateDefaultBuilder(args)
 
                         return httpClientHandler;
                     });
-
+            
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             LogManager.Configuration = new NLogLoggingConfiguration(context.Configuration.GetSection("NLog"));
         })
     .ConfigureContainer<ContainerBuilder>(

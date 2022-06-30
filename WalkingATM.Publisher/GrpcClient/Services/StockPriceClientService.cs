@@ -2,6 +2,7 @@ using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.GrpcClient.Exceptions;
 using WalkingATM.Publisher.Strategies;
+using WalkingATM.Publisher.Utils;
 
 namespace WalkingATM.Publisher.GrpcClient.Services;
 
@@ -17,11 +18,16 @@ public class StockPriceClientService : IStockPriceClientService
 {
     private readonly IOptions<AppSettings> _appSettings;
     private readonly StockPriceService.StockPriceServiceClient _stockPriceServiceClient;
+    private readonly IStringEncodingConverter _stringEncodingConverter;
     private StockPriceSource? _previousProcessed;
 
-    public StockPriceClientService(IOptions<AppSettings> appSettings, GrpcClientFactory grpcClientFactory)
+    public StockPriceClientService(
+        IOptions<AppSettings> appSettings,
+        GrpcClientFactory grpcClientFactory,
+        IStringEncodingConverter stringEncodingConverter)
     {
         _appSettings = appSettings;
+        _stringEncodingConverter = stringEncodingConverter;
         _stockPriceServiceClient = grpcClientFactory.CreateClient<StockPriceService.StockPriceServiceClient>(
             _appSettings.Value.StockPriceServiceClient);
     }
@@ -34,7 +40,9 @@ public class StockPriceClientService : IStockPriceClientService
         var prices = new List<StockPrice>();
         foreach (var stockPriceString in stockPriceStrings)
         {
-            var s = new StockPriceSource(stockPriceString, _appSettings.Value.XQLogFileRecordSeparator);
+            var s = new StockPriceSource(
+                _stringEncodingConverter.GetUtf8String(stockPriceString),
+                _appSettings.Value.XQLogFileRecordSeparator);
             if (s.TimeOnly < strategy.StartTimeOnly)
                 continue;
 
