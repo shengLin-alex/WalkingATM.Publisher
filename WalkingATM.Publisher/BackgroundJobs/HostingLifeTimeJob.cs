@@ -6,13 +6,16 @@ namespace WalkingATM.Publisher.BackgroundJobs;
 public class HostingLifetimeJob : BackgroundService
 {
     private readonly IHostApplicationLifetime _hostApplicationLifetime;
+    private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<HostingLifetimeJob> _logger;
 
     public HostingLifetimeJob(
         IHostApplicationLifetime hostApplicationLifetime,
+        IHostEnvironment hostEnvironment,
         ILogger<HostingLifetimeJob> logger)
     {
         _hostApplicationLifetime = hostApplicationLifetime;
+        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -23,7 +26,7 @@ public class HostingLifetimeJob : BackgroundService
             {
                 _logger.LogInformation(
                     "Application running on env: {Env}",
-                    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
+                    _hostEnvironment.EnvironmentName);
             });
 
         return Task.CompletedTask;
