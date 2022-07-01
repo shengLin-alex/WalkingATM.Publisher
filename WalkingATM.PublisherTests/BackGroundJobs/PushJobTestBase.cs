@@ -6,7 +6,6 @@ using Autofac;
 using Autofac.Core;
 using Microsoft.Extensions.Options;
 using NSubstitute;
-using NUnit.Framework;
 using WalkingATM.Publisher;
 using WalkingATM.Publisher.BackgroundJobs;
 using WalkingATM.Publisher.GrpcClient.Services;
@@ -20,13 +19,13 @@ public abstract class PushJobTestBase
 {
     public virtual void SetUp()
     {
-        _logFileMonitor = Substitute.For<ILogFileMonitor>();
-        _strategy = Substitute.For<IStrategy>();
-        _options = Substitute.For<IOptions<AppSettings>>();
-        _lifetimeScope = Substitute.For<ILifetimeScope>();
-        _timeProvider = Substitute.For<ITimeProvider>();
+        LogFileMonitor = Substitute.For<ILogFileMonitor>();
+        Strategy = Substitute.For<IStrategy>();
+        Options = Substitute.For<IOptions<AppSettings>>();
+        LifetimeScope = Substitute.For<ILifetimeScope>();
+        TimeProvider = Substitute.For<ITimeProvider>();
 
-        _options.Value.Returns(
+        Options.Value.Returns(
             new AppSettings
             {
                 PushLogDataJobCron = CronExpression,
@@ -55,22 +54,22 @@ public abstract class PushJobTestBase
                 }
             });
 
-        _lifetimeScope.BeginLifetimeScope().Returns(_lifetimeScope);
+        LifetimeScope.BeginLifetimeScope().Returns(LifetimeScope);
 
         _componentRegistry = Substitute.For<IComponentRegistry>();
         _componentRegistry.TryGetServiceRegistration(Arg.Any<Service>(), out _).Returns(_ => true);
-        _lifetimeScope.ComponentRegistry.Returns(_componentRegistry);
+        LifetimeScope.ComponentRegistry.Returns(_componentRegistry);
 
         _cronTimerFactory = Substitute.For<ICronTimerFactory>();
         _cronTimer = Substitute.For<ICronTimer>();
         _cronTimerFactory.CreateCronTimer(CronExpression).Returns(_cronTimer);
-        _lifetimeScope
+        LifetimeScope
             .ResolveComponent(
                 Arg.Is<ResolveRequest>(r => r.Service.Description == typeof(ICronTimerFactory).FullName))
             .Returns(_cronTimerFactory);
 
         _stockPriceClientService = Substitute.For<IStockPriceClientService>();
-        _lifetimeScope
+        LifetimeScope
             .ResolveComponent(
                 Arg.Is<ResolveRequest>(r => r.Service.Description == typeof(IStockPriceClientService).FullName))
             .Returns(_stockPriceClientService);
@@ -82,29 +81,30 @@ public abstract class PushJobTestBase
     private const int WaitForExecute = 200;
     private const string Line2FromLogMonitor = "Line2FromLogMonitor";
 
-    private ILogFileMonitor _logFileMonitor;
-    private IStrategy _strategy;
-    private IOptions<AppSettings> _options;
-    private ILifetimeScope _lifetimeScope;
-    private ITimeProvider _timeProvider;
+    protected ILogFileMonitor LogFileMonitor;
+    protected IStrategy Strategy;
+    protected IOptions<AppSettings> Options;
+    protected ILifetimeScope LifetimeScope;
+    protected ITimeProvider TimeProvider;
+    
     private ICronTimerFactory _cronTimerFactory;
     private ICronTimer _cronTimer;
     private IStockPriceClientService _stockPriceClientService;
     private IComponentRegistry _componentRegistry;
 
-    protected PushLogDataJobBase PushJob { get; }
+    protected PushLogDataJobBase PushJob { get; set; }
 
     public virtual async Task Execute_Once()
     {
         _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false); // first and second.
 
-        _timeProvider.IsWorkingDay().Returns(true);
+        TimeProvider.IsWorkingDay().Returns(true);
 
-        _timeProvider.GetNowByTimeZoneId(TimeZoneId).Returns(new DateTime(2022, 06, 30));
+        TimeProvider.GetNowByTimeZoneId(TimeZoneId).Returns(new DateTime(2022, 06, 30));
 
-        _strategy.StrategyName.Returns("OpeningRising");
+        Strategy.StrategyName.Returns("OpeningRising");
 
-        _logFileMonitor.OnLineCallback(
+        LogFileMonitor.OnLineCallback(
             Arg.Do<EventHandler<LogFileMonitorLineEventArgs>>(
                 e =>
                 {
@@ -122,24 +122,24 @@ public abstract class PushJobTestBase
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { LineFromLogMonitor })),
-                _strategy,
+                Strategy,
                 Arg.Any<CancellationToken>());
 
-        _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
+        LogFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }
 
     public virtual async Task Execute_Twice_With_Same_Line()
     {
         _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false);
 
-        _timeProvider.IsWorkingDay().Returns(true);
+        TimeProvider.IsWorkingDay().Returns(true);
 
-        _timeProvider.GetNowByTimeZoneId(TimeZoneId).Returns(new DateTime(2022, 06, 30));
+        TimeProvider.GetNowByTimeZoneId(TimeZoneId).Returns(new DateTime(2022, 06, 30));
 
-        _strategy.StrategyName.Returns("OpeningRising");
+        Strategy.StrategyName.Returns("OpeningRising");
 
         EventHandler<LogFileMonitorLineEventArgs> a = null;
-        _logFileMonitor.OnLineCallback(
+        LogFileMonitor.OnLineCallback(
             Arg.Do<EventHandler<LogFileMonitorLineEventArgs>>(
                 e => { a = e; }));
 
@@ -166,24 +166,24 @@ public abstract class PushJobTestBase
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { LineFromLogMonitor })),
-                _strategy,
+                Strategy,
                 Arg.Any<CancellationToken>());
 
-        _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
+        LogFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }
 
     public virtual async Task Execute_Twice_With_Diff_Line()
     {
         _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false);
 
-        _timeProvider.IsWorkingDay().Returns(true);
+        TimeProvider.IsWorkingDay().Returns(true);
 
-        _timeProvider.GetNowByTimeZoneId(TimeZoneId).Returns(new DateTime(2022, 06, 30));
+        TimeProvider.GetNowByTimeZoneId(TimeZoneId).Returns(new DateTime(2022, 06, 30));
 
-        _strategy.StrategyName.Returns("OpeningRising");
+        Strategy.StrategyName.Returns("OpeningRising");
 
         EventHandler<LogFileMonitorLineEventArgs> a = null;
-        _logFileMonitor.OnLineCallback(
+        LogFileMonitor.OnLineCallback(
             Arg.Do<EventHandler<LogFileMonitorLineEventArgs>>(
                 e => { a = e; }));
 
@@ -210,15 +210,15 @@ public abstract class PushJobTestBase
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { LineFromLogMonitor })),
-                _strategy,
+                Strategy,
                 Arg.Any<CancellationToken>());
 
         await _stockPriceClientService.Received(1)
             .PushStockPrices(
                 Arg.Is<IEnumerable<string>>(i => i.ShouldEqual(new[] { Line2FromLogMonitor })),
-                _strategy,
+                Strategy,
                 Arg.Any<CancellationToken>());
 
-        _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
+        LogFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }
 }
