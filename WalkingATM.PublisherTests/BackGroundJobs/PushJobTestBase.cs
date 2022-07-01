@@ -4,12 +4,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Core;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using NUnit.Framework;
 using WalkingATM.Publisher;
-using WalkingATM.Publisher.BackgroundJobs.Opening;
+using WalkingATM.Publisher.BackgroundJobs;
 using WalkingATM.Publisher.GrpcClient.Services;
 using WalkingATM.Publisher.LogFileMonitor;
 using WalkingATM.Publisher.Strategies;
@@ -17,16 +16,13 @@ using WalkingATM.Publisher.Utils;
 
 namespace WalkingATM.PublisherTests.BackGroundJobs;
 
-[TestFixture]
-public class OpeningRisingPushJobTests
+public abstract class PushJobTestBase
 {
-    [SetUp]
-    public void SetUp()
+    public virtual void SetUp()
     {
         _logFileMonitor = Substitute.For<ILogFileMonitor>();
         _strategy = Substitute.For<IStrategy>();
         _options = Substitute.For<IOptions<AppSettings>>();
-        _logger = Substitute.For<ILogger<OpeningRisingPushJob>>();
         _lifetimeScope = Substitute.For<ILifetimeScope>();
         _timeProvider = Substitute.For<ITimeProvider>();
 
@@ -78,14 +74,6 @@ public class OpeningRisingPushJobTests
             .ResolveComponent(
                 Arg.Is<ResolveRequest>(r => r.Service.Description == typeof(IStockPriceClientService).FullName))
             .Returns(_stockPriceClientService);
-
-        _openingRisingPushJob = new OpeningRisingPushJob(
-            _logFileMonitor,
-            _strategy,
-            _options,
-            _logger,
-            _lifetimeScope,
-            _timeProvider);
     }
 
     private const string CronExpression = "* * * * *";
@@ -97,17 +85,16 @@ public class OpeningRisingPushJobTests
     private ILogFileMonitor _logFileMonitor;
     private IStrategy _strategy;
     private IOptions<AppSettings> _options;
-    private ILogger<OpeningRisingPushJob> _logger;
     private ILifetimeScope _lifetimeScope;
     private ITimeProvider _timeProvider;
-    private OpeningRisingPushJob _openingRisingPushJob;
     private ICronTimerFactory _cronTimerFactory;
     private ICronTimer _cronTimer;
     private IStockPriceClientService _stockPriceClientService;
     private IComponentRegistry _componentRegistry;
 
-    [Test]
-    public async Task Execute_Once()
+    protected PushLogDataJobBase PushJob { get; }
+
+    public virtual async Task Execute_Once()
     {
         _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false); // first and second.
 
@@ -129,7 +116,7 @@ public class OpeningRisingPushJobTests
                         });
                 }));
 
-        await _openingRisingPushJob.StartAsync(CancellationToken.None);
+        await PushJob.StartAsync(CancellationToken.None);
         await Task.Delay(TimeSpan.FromMilliseconds(WaitForExecute));
 
         await _stockPriceClientService.Received(1)
@@ -141,8 +128,7 @@ public class OpeningRisingPushJobTests
         _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }
 
-    [Test]
-    public async Task Execute_Twice_With_Same_Line()
+    public virtual async Task Execute_Twice_With_Same_Line()
     {
         _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false);
 
@@ -157,7 +143,7 @@ public class OpeningRisingPushJobTests
             Arg.Do<EventHandler<LogFileMonitorLineEventArgs>>(
                 e => { a = e; }));
 
-        await _openingRisingPushJob.StartAsync(CancellationToken.None);
+        await PushJob.StartAsync(CancellationToken.None);
         await Task.Delay(TimeSpan.FromMilliseconds(WaitForExecute));
 
         // first invoke
@@ -186,8 +172,7 @@ public class OpeningRisingPushJobTests
         _logFileMonitor.Received(1).Start("Data/OpeningRising_20220630.log");
     }
 
-    [Test]
-    public async Task Execute_Twice_With_Diff_Line()
+    public virtual async Task Execute_Twice_With_Diff_Line()
     {
         _cronTimer.WaitForNextTickAsync(Arg.Any<CancellationToken>()).Returns(true, false);
 
@@ -202,7 +187,7 @@ public class OpeningRisingPushJobTests
             Arg.Do<EventHandler<LogFileMonitorLineEventArgs>>(
                 e => { a = e; }));
 
-        await _openingRisingPushJob.StartAsync(CancellationToken.None);
+        await PushJob.StartAsync(CancellationToken.None);
         await Task.Delay(TimeSpan.FromMilliseconds(WaitForExecute));
 
         // first invoke

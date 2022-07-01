@@ -40,7 +40,7 @@ public class StockPriceClientServiceTests
         _stockPriceServiceClient = Substitute.For<StockPriceService.StockPriceServiceClient>();
         _stringEncodingConverter = Substitute.For<IStringEncodingConverter>();
         _stringEncodingConverter.GetUtf8String(Arg.Any<string>()).Returns(c => c[0]);
-        
+
         _grpcClientFactory
             .CreateClient<StockPriceService.StockPriceServiceClient>(_options.Value.StockPriceServiceClient)
             .Returns(_stockPriceServiceClient);
@@ -83,14 +83,15 @@ public class StockPriceClientServiceTests
                 CancellationToken.None)
             .Returns(
                 new AsyncUnaryCall<Res>(
-                    Task.FromResult(new Res()
-                    {
-                        Code = "Success"
-                    }),
+                    Task.FromResult(
+                        new Res
+                        {
+                            Code = "Success"
+                        }),
                     o => Task.FromResult(new Metadata()),
                     _ => new Status(),
                     _ => new Metadata(),
-                    _ => {},
+                    _ => { },
                     new object()));
 
         var stockPriceClientResult = await _stockPriceClientService.PushStockPrices(
@@ -105,7 +106,7 @@ public class StockPriceClientServiceTests
 
         stockPriceClientResult.Should()
             .BeEquivalentTo(
-                new StockPriceClientResult()
+                new StockPriceClientResult
                 {
                     Code = Code.Success
                 });

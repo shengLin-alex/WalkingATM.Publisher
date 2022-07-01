@@ -41,15 +41,16 @@ webAppBuilder.Services.AddGrpcClient<StockPriceService.StockPriceServiceClient>(
     .ConfigurePrimaryHttpMessageHandler(
         () =>
         {
-            var httpClientHandler = new HttpClientHandler();
-
-            // Validate the server certificate
-            httpClientHandler.ServerCertificateCustomValidationCallback =
-                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            var httpClientHandler = new HttpClientHandler
+            {
+                // Validate the server certificate
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
 
             // Pass the client certificate so the server can authenticate the client
-            var clientCert = X509Certificate2.CreateFromPemFile("certs/grpc.crt", "certs/grpc.key");
-            httpClientHandler.ClientCertificates.Add(clientCert);
+            httpClientHandler.ClientCertificates.Add(
+                X509Certificate2.CreateFromPemFile("certs/grpc.crt", "certs/grpc.key"));
 
             return httpClientHandler;
         });

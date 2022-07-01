@@ -32,10 +32,10 @@ public class StringEncodingConverter : IStringEncodingConverter
                 var utf8 = Encoding.GetEncoding("utf-8");
                 var convert = Encoding.Convert(big5, utf8, big5.GetBytes(input));
                 return Encoding.UTF8.GetString(convert);
-            
+
             case EncodingCode.Utf8:
                 return input;
-            
+
             default:
                 return input;
         }

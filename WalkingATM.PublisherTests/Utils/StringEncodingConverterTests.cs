@@ -10,15 +10,12 @@ namespace WalkingATM.PublisherTests.Utils;
 [TestFixture]
 public class StringEncodingConverterTests
 {
-    private IOptions<AppSettings> _options;
-    private StringEncodingConverter _stringEncodingConverter;
-
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
-    
+
     [SetUp]
     public void SetUp()
     {
@@ -26,11 +23,14 @@ public class StringEncodingConverterTests
         _stringEncodingConverter = new StringEncodingConverter(_options);
     }
 
+    private IOptions<AppSettings> _options;
+    private StringEncodingConverter _stringEncodingConverter;
+
     [Test]
     public void GetUtf8String()
     {
         _options.Value.Returns(
-            new AppSettings()
+            new AppSettings
             {
                 LogFileEncoding = "big5"
             });
@@ -46,7 +46,7 @@ public class StringEncodingConverterTests
             0xB6,
             0xFD,
             0xB9,
-            0x47,
+            0x47
         };
 
         var big5String = Encoding.GetEncoding("big5").GetString(big5Bytes);

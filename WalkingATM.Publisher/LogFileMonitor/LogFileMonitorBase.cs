@@ -134,62 +134,61 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
 
     private void CheckLog(object s, ElapsedEventArgs e)
     {
-        if (StartCheckingLog())
+        if (!StartCheckingLog()) return;
+
+        try
         {
-            try
+            // get the new size
+            var newSize = new FileInfo(_path).Length;
+
+            // if they are the same then continue.. if the current size is bigger than the new size continue
+            if (_currentSize >= newSize)
+                return;
+
+            // read the contents of the file
+            using (var stream = File.Open(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var sr = new StreamReader(stream))
             {
-                // get the new size
-                var newSize = new FileInfo(_path).Length;
+                // seek to the current file position
+                sr.BaseStream.Seek(_currentSize, SeekOrigin.Begin);
 
-                // if they are the same then continue.. if the current size is bigger than the new size continue
-                if (_currentSize >= newSize)
-                    return;
+                // read from current position to the end of the file
+                var newData = _buffer + sr.ReadToEnd();
 
-                // read the contents of the file
-                using (var stream = File.Open(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                using (var sr = new StreamReader(stream))
+                // if we don't end with a delimiter we need to store some data in the buffer for next time
+                if (!newData.EndsWith(Delimiter))
                 {
-                    // seek to the current file position
-                    sr.BaseStream.Seek(_currentSize, SeekOrigin.Begin);
-
-                    // read from current position to the end of the file
-                    var newData = _buffer + sr.ReadToEnd();
-
-                    // if we don't end with a delimiter we need to store some data in the buffer for next time
-                    if (!newData.EndsWith(Delimiter))
+                    // we don't have any lines to process so save in the buffer for next time
+                    if (!newData.Contains(Delimiter))
                     {
-                        // we don't have any lines to process so save in the buffer for next time
-                        if (newData.IndexOf(Delimiter, StringComparison.Ordinal) == -1)
-                        {
-                            _buffer += newData;
-                            newData = string.Empty;
-                        }
-                        else
-                        {
-                            // we have at least one line so store the last section (without lines) in the buffer
-                            var pos = newData.LastIndexOf(Delimiter, StringComparison.Ordinal) + Delimiter.Length;
-                            _buffer = newData.Substring(pos);
-                            newData = newData.Substring(0, pos);
-                        }
+                        _buffer += newData;
+                        newData = string.Empty;
                     }
-
-                    // split the data into lines
-                    var lines = newData.Split(new[] { Delimiter }, StringSplitOptions.RemoveEmptyEntries);
-
-                    // send back to caller, NOTE: this is done from a different thread!
-                    OnLine?.Invoke(this, new LogFileMonitorLineEventArgs { Lines = lines });
+                    else
+                    {
+                        // we have at least one line so store the last section (without lines) in the buffer
+                        var pos = newData.LastIndexOf(Delimiter, StringComparison.Ordinal) + Delimiter.Length;
+                        _buffer = newData[pos..];
+                        newData = newData[..pos];
+                    }
                 }
 
-                // set the new current position
-                _currentSize = newSize;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message, ex);
+                // split the data into lines
+                var lines = newData.Split(new[] { Delimiter }, StringSplitOptions.RemoveEmptyEntries);
+
+                // send back to caller, NOTE: this is done from a different thread!
+                OnLine?.Invoke(this, new LogFileMonitorLineEventArgs { Lines = lines });
             }
 
-            // we done..
-            DoneCheckingLog();
+            // set the new current position
+            _currentSize = newSize;
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{Message}, {StackTrace}", ex.Message, ex.StackTrace);
+        }
+
+        // we done..
+        DoneCheckingLog();
     }
 }

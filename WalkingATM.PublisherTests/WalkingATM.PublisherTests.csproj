@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WalkingATM.Publisher\WalkingATM.Publisher.csproj" />
+        <ProjectReference Include="..\WalkingATM.Publisher\WalkingATM.Publisher.csproj" />
     </ItemGroup>
 
 </Project>
