@@ -7,5 +7,6 @@ public enum StrategyEnum
     IntradayRising,
     IntradayFall,
     ClosingRising,
-    ClosingFall
+    ClosingFall,
+    Kong,
 }

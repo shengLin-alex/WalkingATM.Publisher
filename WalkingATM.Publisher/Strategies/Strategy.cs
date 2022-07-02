@@ -99,3 +99,18 @@ public class ClosingFallStrategy : IStrategy
     public TimeOnly StartTimeOnly => _appSettings.Value.StrategySettings.ClosingStartTimeOnly;
     public string EndTime => _appSettings.Value.StrategySettings.ClosingEndTime;
 }
+
+public class KongStrategy : IStrategy
+{
+    private readonly IOptions<AppSettings> _appSettings;
+
+    public KongStrategy(IOptions<AppSettings> appSettings)
+    {
+        _appSettings = appSettings;
+    }
+    
+    public string StrategyName => _appSettings.Value.StrategySettings.KongStrategy;
+    public string StartUpTime => _appSettings.Value.StrategySettings.KongStartTime;
+    public TimeOnly StartTimeOnly => _appSettings.Value.StrategySettings.KongStartTimeOnly;
+    public string EndTime => _appSettings.Value.StrategySettings.KongEndTime;
+}

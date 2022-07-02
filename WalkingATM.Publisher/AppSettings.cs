@@ -36,4 +36,9 @@ public class StrategySettings
     public TimeOnly ClosingEndTimeOnly => TimeOnly.Parse(ClosingEndTime);
     public string ClosingRisingStrategy { get; init; } = null!;
     public string ClosingFallStrategy { get; init; } = null!;
+    public string KongStrategy { get; init; } = null!;
+    public string KongStartTime { get; init; } = null!;
+    public string KongEndTime { get; init; } = null!;
+    public TimeOnly KongStartTimeOnly => TimeOnly.Parse(KongStartTime);
+    public TimeOnly KongEntTimeOnly => TimeOnly.Parse(KongEndTime);
 }
