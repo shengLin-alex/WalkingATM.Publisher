@@ -1,3 +1,4 @@
+using System.Text;
 using System.Timers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -147,13 +148,20 @@ public abstract class LogFileMonitorBase : ILogFileMonitor
 
             // read the contents of the file
             using (var stream = File.Open(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using (var sr = new StreamReader(stream))
+            using (var sr = new StreamReader(stream, Encoding.GetEncoding(_appSettings.Value.LogFileEncoding)))
             {
                 // seek to the current file position
                 sr.BaseStream.Seek(_currentSize, SeekOrigin.Begin);
 
                 // read from current position to the end of the file
                 var newData = _buffer + sr.ReadToEnd();
+
+                if (sr.CurrentEncoding != Encoding.UTF8)
+                {
+                    byte[] encBytes = sr.CurrentEncoding.GetBytes(newData);
+                    byte[] utf8Bytes = Encoding.Convert(sr.CurrentEncoding, Encoding.UTF8, encBytes);
+                    newData = Encoding.UTF8.GetString(utf8Bytes);
+                }
 
                 // if we don't end with a delimiter we need to store some data in the buffer for next time
                 if (!newData.EndsWith(Delimiter))

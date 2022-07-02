@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WalkingATM.Publisher": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "windows"
+      }
+    }
+  }
+}
