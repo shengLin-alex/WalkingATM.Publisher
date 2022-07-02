@@ -9,8 +9,6 @@ namespace WalkingATM.PublisherTests.BackGroundJobs;
 [TestFixture]
 public class OpeningFallPushJobTests : PushJobTestBase
 {
-    private ILogger<OpeningFallPushJob> _logger;
-
     [SetUp]
     public override void SetUp()
     {
@@ -23,9 +21,10 @@ public class OpeningFallPushJobTests : PushJobTestBase
             Options,
             _logger,
             LifetimeScope,
-            TimeProvider,
-            HostEnvironment);
+            TimeProvider);
     }
+
+    private ILogger<OpeningFallPushJob> _logger;
 
     [Test]
     public override Task Execute_Once()

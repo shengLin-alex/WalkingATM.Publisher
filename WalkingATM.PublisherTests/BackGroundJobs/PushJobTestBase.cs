@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Core;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using WalkingATM.Publisher;
@@ -18,6 +17,25 @@ namespace WalkingATM.PublisherTests.BackGroundJobs;
 
 public abstract class PushJobTestBase
 {
+    private const string CronExpression = "* * * * *";
+    private const string LineFromLogMonitor = "開盤下跌 | 2022/06/29 | 09:13:13 | 2615.TW | 萬海 | 價格 | 122.00 ";
+    private const string TimeZoneId = "Asia/Taipei";
+    private const int WaitForExecute = 200;
+    private const string Line2FromLogMonitor = "Line2FromLogMonitor";
+    private IComponentRegistry _componentRegistry;
+    private ICronTimer _cronTimer;
+
+    private ICronTimerFactory _cronTimerFactory;
+    private IStockPriceClientService _stockPriceClientService;
+    protected ILifetimeScope LifetimeScope;
+
+    protected ILogFileMonitor LogFileMonitor;
+    protected IOptions<AppSettings> Options;
+    protected IStrategy Strategy;
+    protected ITimeProvider TimeProvider;
+
+    protected PushLogDataJobBase PushJob { get; set; }
+
     public virtual void SetUp()
     {
         LogFileMonitor = Substitute.For<ILogFileMonitor>();
@@ -25,9 +43,6 @@ public abstract class PushJobTestBase
         Options = Substitute.For<IOptions<AppSettings>>();
         LifetimeScope = Substitute.For<ILifetimeScope>();
         TimeProvider = Substitute.For<ITimeProvider>();
-
-        HostEnvironment = Substitute.For<IHostEnvironment>();
-        HostEnvironment.EnvironmentName.Returns("development");
 
         Options.Value.Returns(
             new AppSettings
@@ -78,26 +93,6 @@ public abstract class PushJobTestBase
                 Arg.Is<ResolveRequest>(r => r.Service.Description == typeof(IStockPriceClientService).FullName))
             .Returns(_stockPriceClientService);
     }
-
-    private const string CronExpression = "* * * * *";
-    private const string LineFromLogMonitor = "開盤下跌 | 2022/06/29 | 09:13:13 | 2615.TW | 萬海 | 價格 | 122.00 ";
-    private const string TimeZoneId = "Asia/Taipei";
-    private const int WaitForExecute = 200;
-    private const string Line2FromLogMonitor = "Line2FromLogMonitor";
-
-    protected ILogFileMonitor LogFileMonitor;
-    protected IStrategy Strategy;
-    protected IOptions<AppSettings> Options;
-    protected ILifetimeScope LifetimeScope;
-    protected ITimeProvider TimeProvider;
-    protected IHostEnvironment HostEnvironment;
-    
-    private ICronTimerFactory _cronTimerFactory;
-    private ICronTimer _cronTimer;
-    private IStockPriceClientService _stockPriceClientService;
-    private IComponentRegistry _componentRegistry;
-
-    protected PushLogDataJobBase PushJob { get; set; }
 
     public virtual async Task Execute_Once()
     {
