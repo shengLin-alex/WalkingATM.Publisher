@@ -23,7 +23,8 @@ public class ClosingRisingPushJobTests : PushJobTestBase
             Options,
             _logger,
             LifetimeScope,
-            TimeProvider);
+            TimeProvider,
+            HostEnvironment);
     }
 
     [Test]

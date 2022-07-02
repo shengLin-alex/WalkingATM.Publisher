@@ -23,7 +23,8 @@ public class IntradayFallPushJobTests : PushJobTestBase
             Options,
             _logger,
             LifetimeScope,
-            TimeProvider);
+            TimeProvider,
+            HostEnvironment);
     }
 
     [Test]

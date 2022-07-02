@@ -23,7 +23,8 @@ public class OpeningFallPushJobTests : PushJobTestBase
             Options,
             _logger,
             LifetimeScope,
-            TimeProvider);
+            TimeProvider,
+            HostEnvironment);
     }
 
     [Test]

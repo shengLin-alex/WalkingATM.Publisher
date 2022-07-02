@@ -18,6 +18,7 @@ public abstract class PushLogDataJobBase : BackgroundService
     private readonly IStrategy _strategy;
     private readonly object _syncRoot = new();
     private readonly ITimeProvider _timeProvider;
+    private readonly IHostEnvironment _hostEnvironment;
     private string[] _cachedLines = Array.Empty<string>();
     private bool _isPushed;
 
@@ -27,7 +28,8 @@ public abstract class PushLogDataJobBase : BackgroundService
         IStrategy strategy,
         IOptions<AppSettings> appSettings,
         ILogger<PushLogDataJobBase> logger,
-        ITimeProvider timeProvider)
+        ITimeProvider timeProvider,
+        IHostEnvironment hostEnvironment)
     {
         _lifetimeScope = lifeTimeScope;
         _monitor = logFileMonitor;
@@ -35,6 +37,7 @@ public abstract class PushLogDataJobBase : BackgroundService
         _appSettings = appSettings;
         _logger = logger;
         _timeProvider = timeProvider;
+        _hostEnvironment = hostEnvironment;
     }
 
     /// <summary>
@@ -57,7 +60,7 @@ public abstract class PushLogDataJobBase : BackgroundService
 
             while (await cronTimer.WaitForNextTickAsync(cancellationToken))
             {
-                if (!_timeProvider.IsWorkingDay())
+                if (!_hostEnvironment.IsDevelopment() && !_timeProvider.IsWorkingDay())
                 {
                     continue;
                 }

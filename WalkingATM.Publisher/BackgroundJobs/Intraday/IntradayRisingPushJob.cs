@@ -1,5 +1,6 @@
 using Autofac;
 using Autofac.Features.AttributeFilters;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WalkingATM.Publisher.LogFileMonitor;
@@ -18,13 +19,15 @@ public class IntradayRisingPushJob : PushLogDataJobBase
         IOptions<AppSettings> appSettings,
         ILogger<IntradayRisingPushJob> logger,
         ILifetimeScope lifetimeScope,
-        ITimeProvider timeProvider) : base(
+        ITimeProvider timeProvider,
+        IHostEnvironment hostEnvironment) : base(
         lifetimeScope,
         logFileMonitor,
         strategy,
         appSettings,
         logger,
-        timeProvider)
+        timeProvider,
+        hostEnvironment)
     {
     }
 }

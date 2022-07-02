@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Core;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using WalkingATM.Publisher;
@@ -24,6 +25,9 @@ public abstract class PushJobTestBase
         Options = Substitute.For<IOptions<AppSettings>>();
         LifetimeScope = Substitute.For<ILifetimeScope>();
         TimeProvider = Substitute.For<ITimeProvider>();
+
+        HostEnvironment = Substitute.For<IHostEnvironment>();
+        HostEnvironment.EnvironmentName.Returns("development");
 
         Options.Value.Returns(
             new AppSettings
@@ -86,6 +90,7 @@ public abstract class PushJobTestBase
     protected IOptions<AppSettings> Options;
     protected ILifetimeScope LifetimeScope;
     protected ITimeProvider TimeProvider;
+    protected IHostEnvironment HostEnvironment;
     
     private ICronTimerFactory _cronTimerFactory;
     private ICronTimer _cronTimer;
