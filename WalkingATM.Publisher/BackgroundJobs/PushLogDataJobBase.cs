@@ -55,38 +55,16 @@ public abstract class PushLogDataJobBase : BackgroundService
             var stockPriceClientService = serviceScope.Resolve<IStockPriceClientService>();
             var cronTimer = cronTimerFactory.CreateCronTimer(_appSettings.Value.PushLogDataJobCron);
 
-            while (await cronTimer.WaitForNextTickAsync(cancellationToken))
+            if (_appSettings.Value.IsDisableCron)
             {
-                _monitor.OnLineCallback(
-                    (_, e) =>
-                    {
-                        lock (_syncRoot)
-                        {
-                            if (_isPushed && e.Lines.SequenceEqual(_cachedLines))
-                                return;
-
-                            if (_isPushed && !e.Lines.SequenceEqual(_cachedLines))
-                                _isPushed = false;
-
-                            if (_isPushed)
-                                return;
-
-                            // fire and forget
-                            stockPriceClientService.PushStockPrices(e.Lines, _strategy, cancellationToken);
-                            foreach (var line in e.Lines)
-                            {
-                                _logger.LogInformation("{Line}", line);
-                            }
-
-                            _isPushed = true;
-                            _cachedLines = e.Lines;
-                        }
-                    });
-
-                var date = _timeProvider.GetNowByTimeZoneId(_appSettings.Value.TimeZoneId)
-                    .ToString(_appSettings.Value.XQLogFileDateTimeFormat);
-
-                _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, _strategy.StrategyName, date));
+                ExecutePush(stockPriceClientService, cancellationToken);
+            }
+            else
+            {
+                while (await cronTimer.WaitForNextTickAsync(cancellationToken))
+                {
+                    ExecutePush(stockPriceClientService, cancellationToken);
+                }
             }
         }
         catch (Exception e)
@@ -96,5 +74,39 @@ public abstract class PushLogDataJobBase : BackgroundService
                 _logger.LogCritical(e, "{Message}, {StackTrace}", e.Message, e.StackTrace);
             }
         }
+    }
+
+    private void ExecutePush(IStockPriceClientService stockPriceClientService, CancellationToken cancellationToken)
+    {
+        _monitor.OnLineCallback(
+            (_, e) =>
+            {
+                lock (_syncRoot)
+                {
+                    if (_isPushed && e.Lines.SequenceEqual(_cachedLines))
+                        return;
+
+                    if (_isPushed && !e.Lines.SequenceEqual(_cachedLines))
+                        _isPushed = false;
+
+                    if (_isPushed)
+                        return;
+
+                    // fire and forget
+                    stockPriceClientService.PushStockPrices(e.Lines, _strategy, cancellationToken);
+                    foreach (var line in e.Lines)
+                    {
+                        _logger.LogInformation("{Line}", line);
+                    }
+
+                    _isPushed = true;
+                    _cachedLines = e.Lines;
+                }
+            });
+
+        var date = _timeProvider.GetNowByTimeZoneId(_appSettings.Value.TimeZoneId)
+            .ToString(_appSettings.Value.XQLogFileDateTimeFormat);
+
+        _monitor.Start(string.Format(_appSettings.Value.XQLogFilePath, _strategy.StrategyName, date));
     }
 }

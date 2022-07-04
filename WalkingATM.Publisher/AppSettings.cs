@@ -14,6 +14,7 @@ public class AppSettings
     public StrategySettings StrategySettings { get; init; } = null!;
     public string LogFileDelimiter { get; init; } = null!;
     public string LogFileEncoding { get; init; } = null!;
+    public bool IsDisableCron { get; init; }
 }
 
 public class StrategySettings

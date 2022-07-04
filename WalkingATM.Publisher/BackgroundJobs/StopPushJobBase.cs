@@ -37,6 +37,11 @@ public abstract class StopPushJobBase : BackgroundService
 
     private async Task Executing()
     {
+        if (_appSettings.Value.IsDisableCron)
+        {
+            return;
+        }
+
         try
         {
             await using var serviceScope = _lifetimeScope.BeginLifetimeScope();
